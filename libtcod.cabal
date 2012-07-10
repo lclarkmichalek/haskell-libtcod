@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                libtcod
-version:             0.1.0.0
+version:             1.5.1
 synopsis:            A wrapper around the C TCOD library.
 -- description:         
 license:             BSD3
@@ -15,6 +15,14 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 library
-  exposed-modules:     UI.TCOD, UI.TCOD.Console
-  other-modules:       
+  exposed-modules:
+    UI.TCOD
+    UI.TCOD.Console
+    UI.TCOD.Console.Init
+    UI.TCOD.Console.Draw
+    UI.TCOD.Color
+  --  other-modules:
+  C-sources:           UI/TCOD/color.c
+  Include-dirs:        UI/TCOD
+  extra-libraries:     tcod
   build-depends:       base ==4.5.*
