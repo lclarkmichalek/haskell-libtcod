@@ -1,6 +1,8 @@
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}
 module UI.TCOD.Console
-       ( Renderer(..)
+       ( Console(..)
+
+       , Renderer(..)
        , ConsoleConfig (..)
        , defaultConsoleConfig
        , initConsole
@@ -23,15 +25,39 @@ module UI.TCOD.Console
        , credits
        , creditsRender
        , creditsReset
+
+       , setDefaultBackground
+       , setDefaultForeground
+       , clear
        ) where
 
 import Foreign
+import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String
 
 import Data.Char (ord)
 
-#include "libtcod/libtcod.h"
+import UI.TCOD.Color(Color(..))
+
+#include "console.h"
+
+data Console = Console (ForeignPtr ())
+             | RootConsole
+
+withConsolePtr :: Console -> (Ptr () -> IO b) -> IO b
+withConsolePtr (Console forp) f = withForeignPtr forp f
+withConsolePtr RootConsole f = f nullPtr
+
+foreign import ccall "console.h &TCOD_console_delete_ptr"
+  tcod_console_delete :: FunPtr (Ptr () -> IO ())
+
+-- Creates a finalised console from a raw console pointer
+createConsole :: IO (Ptr ()) -> IO Console
+createConsole rawC = do
+  rawC' <- rawC
+  fPtr <- newForeignPtr (tcod_console_delete) rawC'
+  return $ Console fPtr
 
 {- The renderer enum type, defined in libtcod/console_types.h. Defines
    the renderer to be used. If the hardware does not support a
@@ -51,7 +77,7 @@ renderToCInt RenderOpenGL = #const TCOD_RENDERER_OPENGL
 renderToCInt RenderSDL = #const TCOD_RENDERER_SDL
 renderToCInt RenderNone = #const TCOD_NB_RENDERERS
 
-foreign import ccall "libtcod/libtcod.h TCOD_console_init_root"
+foreign import ccall "console.h TCOD_console_init_root"
   tcod_console_init_root :: CInt
                          -> CInt
                          -> CString
@@ -71,7 +97,7 @@ defaultConsoleConfig = ConsoleConfig False RenderGLSL
 {- Initialises the root tcod console. `width` and `height` are the
    width and height of the console in characters, as defined by the
    console font (the default font uses 8x8 pixel characters). -}
-initConsole :: Int -> Int -> String -> ConsoleConfig -> IO()
+initConsole :: Int -> Int -> String -> ConsoleConfig -> IO Console
 initConsole width height windowName config = do
   windowName' <- newCAString windowName
   let width' = fromIntegral width
@@ -79,8 +105,9 @@ initConsole width height windowName config = do
       fullscreen = consoleFullscreen config
       renderer = renderToCInt $ consoleRenderer config
   tcod_console_init_root width' height' windowName' fullscreen renderer
+  return RootConsole
 
-foreign import ccall "libtcod/libtcod.h TCOD_console_set_custom_font"
+foreign import ccall "console.h TCOD_console_set_custom_font"
   tcod_console_set_custom_font :: CString
                                   -> FontFlag
                                   -> CInt
@@ -120,7 +147,7 @@ setCustomFont filename config = do
       ncVt = fromIntegral $ fontCharsVertical config
   tcod_console_set_custom_font filename' flags ncHz ncVt
 
-foreign import ccall "libtcod/libtcod.h TCOD_console_map_ascii_code_to_font"
+foreign import ccall "console.h TCOD_console_map_ascii_code_to_font"
   tcod_console_map_ascii_font :: CInt
                                  -> CInt
                                  -> CInt
@@ -133,7 +160,7 @@ mapASCIICodeToFont c x y =
   tcod_console_map_ascii_font (fromIntegral (ord c))
   (fromIntegral x) (fromIntegral y)
 
-foreign import ccall "libtcod/libtcod.h TCOD_console_map_ascii_codes_to_font"
+foreign import ccall "console.h TCOD_console_map_ascii_codes_to_font"
   tcod_console_map_ascii_fonts :: CInt
                                   -> CInt
                                   -> CInt
@@ -148,7 +175,7 @@ mapASCIICodesToFont c n x y =
   tcod_console_map_ascii_fonts (fromIntegral (ord c)) (fromIntegral n)
   (fromIntegral x) (fromIntegral y)
 
-foreign import ccall "libtcod/libtcod.h TCOD_console_map_string_to_font"
+foreign import ccall "console.h TCOD_console_map_string_to_font"
   tcod_console_map_string_font :: CString
                                   -> CInt
                                   -> CInt
@@ -162,26 +189,26 @@ mapStringToFont s x y= do
   s' <- newCAString s
   tcod_console_map_string_font s' (fromIntegral x) (fromIntegral y)
 
-foreign import ccall "libtcod/libtcod.h TCOD_console_is_fullscreen"
+foreign import ccall "console.h TCOD_console_is_fullscreen"
   tcod_console_is_fullscreen :: IO Bool
 
 -- Tests if the root console is fullscreened or not
 isFullscreen = tcod_console_is_fullscreen
 
-foreign import ccall "libtcod/libtcod.h TCOD_console_set_fullscreen"
+foreign import ccall "console.h TCOD_console_set_fullscreen"
   tcod_console_set_fullscreen :: Bool -> IO()
 
 -- Sets the console to be fullscreen or not.
 setFullscreen = tcod_console_set_fullscreen
 
-foreign import ccall "libtcod/libtcod.h TCOD_console_set_window_title"
+foreign import ccall "console.h TCOD_console_set_window_title"
   tcod_console_set_window_title :: CString  -> IO()
 
 -- Sets the root window title
 setWindowTitle :: String -> IO ()
 setWindowTitle s = (newCAString s) >>= tcod_console_set_window_title
 
-foreign import ccall "libtcod/libtcod.h TCOD_console_is_window_closed"
+foreign import ccall "console.h TCOD_console_is_window_closed"
   tcod_console_is_window_closed :: IO Bool
 
 -- Returns true if the window is closed. The program should then exit
@@ -189,14 +216,14 @@ foreign import ccall "libtcod/libtcod.h TCOD_console_is_window_closed"
 isWindowClosed :: IO Bool
 isWindowClosed = tcod_console_is_window_closed
 
-foreign import ccall "libtcod/libtcod.h TCOD_console_credits"
+foreign import ccall "console.h TCOD_console_credits"
   tcod_console_credits :: IO ()
 
 -- Prints out the tcod credits on the root console.
 credits :: IO ()
 credits = tcod_console_credits
 
-foreign import ccall "libtcod/libtcod.h TCOD_console_credits_render"
+foreign import ccall "console.h TCOD_console_credits_render"
   tcod_console_credits_render :: CInt
                                  -> CInt
                                  -> Bool
@@ -209,9 +236,44 @@ creditsRender :: Int -> Int -> Bool -> IO Bool
 creditsRender x y a = tcod_console_credits_render
                       (fromIntegral x) (fromIntegral y) a
 
-foreign import ccall "libtcod/libtcod.h TCOD_console_credits_reset"
+foreign import ccall "console.h TCOD_console_credits_reset"
   tcod_console_credits_reset :: IO ()
 
 -- Resets the credits that have been started by `creditsRender`
 creditsReset :: IO()
 creditsReset = tcod_console_credits_reset
+
+foreign import ccall "console.h TCOD_console_set_default_background_ptr"
+  tcod_console_set_default_background :: Ptr ()
+                                         -> Ptr Color
+                                         -> IO ()
+
+-- Sets the default background colour of the console
+setDefaultBackground :: Console -> Color -> IO ()
+setDefaultBackground con col =
+  alloca $ \colp ->
+  withConsolePtr con $ \conp -> do
+    poke colp col
+    tcod_console_set_default_background conp colp
+
+foreign import ccall "console.h TCOD_console_set_default_foreground_ptr"
+  tcod_console_set_default_foreground :: Ptr ()
+                                         -> Ptr Color
+                                         -> IO ()
+
+-- Sets the default background colour of the console
+setDefaultForeground :: Console -> Color -> IO ()
+setDefaultForeground con col =
+  alloca $ \colp ->
+  withConsolePtr con $ \conp -> do
+    poke colp col
+    tcod_console_set_default_foreground conp colp
+
+foreign import ccall "console.h TCOD_console_clear"
+  tcod_console_clear :: Ptr ()
+                        -> IO ()
+
+-- Clears the console
+clear :: Console -> IO ()
+clear con = withConsolePtr con $ \conp -> do
+  tcod_console_clear conp
