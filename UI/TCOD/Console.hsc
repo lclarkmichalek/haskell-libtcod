@@ -29,6 +29,14 @@ module UI.TCOD.Console
        , setDefaultBackground
        , setDefaultForeground
        , clear
+
+       , setCharBackground
+       , setCharForeground
+       , setChar
+       , putChar_
+       , putCharEx
+
+       , rect
        ) where
 
 import Foreign
@@ -39,6 +47,7 @@ import Foreign.C.String
 import Data.Char (ord)
 
 import UI.TCOD.Color(Color(..))
+import UI.TCOD.Console.Types
 
 #include "console.h"
 
@@ -59,24 +68,6 @@ createConsole rawC = do
   fPtr <- newForeignPtr (tcod_console_delete) rawC'
   return $ Console fPtr
 
-{- The renderer enum type, defined in libtcod/console_types.h. Defines
-   the renderer to be used. If the hardware does not support a
-   render, libtcod will work it's way down the list of renders till
-   it finds one that is supported.
-
-   Using GLSL is recommended, and can have a 9x increase in speed on
-   recent cards. -}
-data Renderer = RenderGLSL
-              | RenderOpenGL
-              | RenderSDL
-              | RenderNone
-              deriving (Eq, Show)
-
-renderToCInt RenderGLSL = #const TCOD_RENDERER_GLSL
-renderToCInt RenderOpenGL = #const TCOD_RENDERER_OPENGL
-renderToCInt RenderSDL = #const TCOD_RENDERER_SDL
-renderToCInt RenderNone = #const TCOD_NB_RENDERERS
-
 foreign import ccall "console.h TCOD_console_init_root"
   tcod_console_init_root :: CInt
                          -> CInt
@@ -92,7 +83,7 @@ data ConsoleConfig = ConsoleConfig
                      } deriving (Eq, Show)
 
 -- The default tcod console config, as defined in tcod C++ headers.
-defaultConsoleConfig = ConsoleConfig False RenderGLSL
+defaultConsoleConfig = ConsoleConfig False renderGLSL
 
 {- Initialises the root tcod console. `width` and `height` are the
    width and height of the console in characters, as defined by the
@@ -103,6 +94,7 @@ initConsole width height windowName config = do
   let width' = fromIntegral width
       height' = fromIntegral height
       fullscreen = consoleFullscreen config
+      renderToCInt (Renderer c) = c
       renderer = renderToCInt $ consoleRenderer config
   tcod_console_init_root width' height' windowName' fullscreen renderer
   return RootConsole
@@ -113,18 +105,6 @@ foreign import ccall "console.h TCOD_console_set_custom_font"
                                   -> CInt
                                   -> CInt
                                   -> IO ()
-
--- The font flags, as defined in libtcod/console_types.h. Used to
--- define the font layout, and the font type.
-newtype FontFlag = FontFlag { unFontFlag :: CInt }
-                 deriving (Eq, Show)
-
-#{enum FontFlag, FontFlag
- , fontLayoutASCIICol = TCOD_FONT_LAYOUT_ASCII_INCOL
- , fontLayoutASCIIRow = TCOD_FONT_LAYOUT_ASCII_INROW
- , fontTypeGreyscale = TCOD_FONT_TYPE_GREYSCALE
- , fontLayoutTCOD = TCOD_FONT_LAYOUT_TCOD
- }
 
 data FontConfig = FontConfig
                   { fontFlags :: FontFlag
@@ -277,3 +257,109 @@ foreign import ccall "console.h TCOD_console_clear"
 clear :: Console -> IO ()
 clear con = withConsolePtr con $ \conp -> do
   tcod_console_clear conp
+
+foreign import ccall "console.h TCOD_console_set_char_background_ptr"
+  tcod_console_set_char_back :: Ptr ()
+                                -> CInt
+                                -> CInt
+                                -> Ptr Color
+                                -> CInt
+                                -> IO ()
+
+setCharBackground :: Console -> (Int, Int) -> Color -> BackgroundFlag -> IO ()
+setCharBackground con (x, y) col bf =
+  withConsolePtr con $ \conp ->
+  alloca $ \colp -> do
+    poke colp col
+    tcod_console_set_char_back conp x' y' colp (unBF bf)
+      where unBF (BackgroundFlag c) = c
+            x' = CInt (fromIntegral x)
+            y' = CInt (fromIntegral y)
+
+foreign import ccall "console.h TCOD_console_set_char_foreground_ptr"
+  tcod_console_set_char_fore :: Ptr ()
+                                -> CInt
+                                -> CInt
+                                -> Ptr Color
+                                -> IO ()
+
+setCharForeground :: Console -> (Int, Int) -> Color -> IO ()
+setCharForeground con (x, y) col =
+  withConsolePtr con $ \conp ->
+  alloca $ \colp -> do
+    poke colp col
+    tcod_console_set_char_fore conp x' y' colp
+      where x' = CInt (fromIntegral x)
+            y' = CInt (fromIntegral y)
+
+foreign import ccall "console.h TCOD_console_set_char"
+  tcod_console_set_char :: Ptr ()
+                           -> CInt
+                           -> CInt
+                           -> CInt
+                           -> IO ()
+
+setChar :: Console -> (Int, Int) -> Char -> IO ()
+setChar con (x, y) char = withConsolePtr con $ \conp -> do
+  tcod_console_set_char conp x' y' char'
+    where conv = CInt . fromIntegral
+          x' = conv x
+          y' = conv y
+          char' = conv (ord char)
+
+foreign import ccall "console.h TCOD_console_put_char"
+  tcod_console_put_char :: Ptr ()
+                           -> CInt
+                           -> CInt
+                           -> CInt
+                           -> CInt
+                           -> IO ()
+
+putChar_ :: Console -> (Int, Int) -> Char -> BackgroundFlag -> IO ()
+putChar_ con (x, y) char (BackgroundFlag bf) = withConsolePtr con $ \conp -> do
+  tcod_console_put_char conp x' y' char' bf
+  where conv = CInt . fromIntegral
+        x' = conv x
+        y' = conv y
+        char' = conv (ord char)
+
+foreign import ccall "console.h TCOD_console_put_char_ex_ptr"
+  tcod_console_put_char_ex :: Ptr ()
+                              -> CInt
+                              -> CInt
+                              -> CInt
+                              -> Ptr Color
+                              -> Ptr Color
+                              -> IO ()
+
+putCharEx :: Console -> (Int, Int) -> Char -> Color -> Color -> IO ()
+putCharEx con (x, y) char for bak =
+  withConsolePtr con $ \conp ->
+  alloca $ \forp ->
+  alloca $ \bakp -> do
+    poke forp for
+    poke bakp bak
+    tcod_console_put_char_ex conp x' y' char' forp bakp
+    where conv = CInt . fromIntegral
+          x' = conv x
+          y' = conv y
+          char' = conv (ord char)
+
+foreign import ccall "console.h TCOD_console_rect"
+  tcod_console_rect :: Ptr ()
+                       -> CInt
+                       -> CInt
+                       -> CInt
+                       -> CInt
+                       -> Bool
+                       -> CInt
+                       -> IO ()
+
+rect :: Console -> (Int, Int) -> (Int, Int) -> Bool -> BackgroundFlag -> IO ()
+rect con (x, y) (w, h) c (BackgroundFlag bf) = withConsolePtr con $ \conp -> do
+  tcod_console_rect conp x' y' w' h' c bf
+  where conv = CInt . fromIntegral
+        x' = conv x
+        y' = conv y
+        w' = conv w
+        h' = conv h

@@ -18,6 +18,7 @@ library
   exposed-modules:
     UI.TCOD
     UI.TCOD.Console
+    UI.TCOD.Console.Types
     UI.TCOD.Color
   --  other-modules:
   C-sources:
