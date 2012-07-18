@@ -6,6 +6,7 @@ module UI.TCOD.Console
        , ConsoleConfig (..)
        , defaultConsoleConfig
        , initConsole
+       , deleteConsole
 
        , FontFlag(..)
        , FontConfig(..)
@@ -37,14 +38,42 @@ module UI.TCOD.Console
        , putCharEx
 
        , rect
+       , hLine
+       , vLine
+       , printFrame
+
+       , getWidth
+       , getHeight
+       , getDefaultBackground
+       , getDefaultForeground
+       , getCharBackground
+       , getCharForeground
+       , getChar
+
+       , setFade
+       , getFade
+       , getFadingColor
+
+       , flushConsole
+
+       , initOffscreen
+       , initOffscreenFromFile
+       , loadASC
+       , loadAFP
+       , saveASC
+       , saveAFP
+
+       , blit
+       , setKeyColor
        ) where
 
-import Foreign
+import Foreign hiding (unsafeLocalState)
 import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String
+import Foreign.Marshal.Unsafe (unsafeLocalState)
 
-import Data.Char (ord)
+import Data.Char (ord, chr)
 
 import UI.TCOD.Color(Color(..))
 import UI.TCOD.Console.Types
@@ -67,6 +96,10 @@ createConsole rawC = do
   rawC' <- rawC
   fPtr <- newForeignPtr (tcod_console_delete) rawC'
   return $ Console fPtr
+
+deleteConsole :: Console -> IO ()
+deleteConsole RootConsole = return
+deleteConsole (Console forp) = finalizeForeignPtr forp
 
 foreign import ccall "console.h TCOD_console_init_root"
   tcod_console_init_root :: CInt
@@ -363,3 +396,283 @@ rect con (x, y) (w, h) c (BackgroundFlag bf) = withConsolePtr con $ \conp -> do
         y' = conv y
         w' = conv w
         h' = conv h
+
+foreign import ccall "console.h TCOD_console_hline"
+  tcod_console_hline :: Ptr ()
+                        -> CInt
+                        -> CInt
+                        -> CInt
+                        -> CInt
+                        -> IO ()
+
+hLine :: Console -> (Int, Int) -> Int -> BackgroundFlag -> IO ()
+hLine con (x, y) l (BackgroundFlag bf) = withConsolePtr con $ \conp ->
+  tcod_console_hline conp x' y' l' bf
+  where conv = CInt . fromIntegral
+        x' = conv x
+        y' = conv y
+        l' = conv l
+
+foreign import ccall "console.h TCOD_console_vline"
+  tcod_console_vline :: Ptr ()
+                        -> CInt
+                        -> CInt
+                        -> CInt
+                        -> CInt
+                        -> IO ()
+
+vLine :: Console -> (Int, Int) -> Int -> BackgroundFlag -> IO ()
+vLine con (x, y) l (BackgroundFlag bf) = withConsolePtr con $ \conp ->
+  tcod_console_vline conp x' y' l' bf
+  where conv = CInt . fromIntegral
+        x' = conv x
+        y' = conv y
+        l' = conv l
+
+foreign import ccall "console.h TCOD_console_print_frame"
+  tcod_console_print_frame :: Ptr ()
+                              -> CInt
+                              -> CInt
+                              -> CInt
+                              -> CInt
+                              -> Bool
+                              -> CInt
+                              -> Ptr ()
+                              -> IO ()
+
+printFrame :: Console -> (Int, Int) -> (Int, Int)
+              -> Bool -> BackgroundFlag -> IO ()
+printFrame con (x, y) (w, h) clear (BackgroundFlag bf) =
+  withConsolePtr con $ \conp -> do
+    tcod_console_print_frame conp x' y' w' h' clear bf nullPtr
+  where conv = CInt . fromIntegral
+        x' = conv x
+        y' = conv y
+        w' = conv w
+        h' = conv h
+
+foreign import ccall unsafe "console.h TCOD_console_get_width"
+  tcod_console_get_width :: Ptr ()
+                            -> IO CInt
+
+getWidth :: Console -> IO Int
+getWidth con = fromIntegral `fmap` (withConsolePtr con tcod_console_get_width)
+
+foreign import ccall unsafe "console.h TCOD_console_get_height"
+  tcod_console_get_height :: Ptr ()
+                            -> IO CInt
+
+getHeight :: Console -> IO Int
+getHeight con = fromIntegral `fmap` (withConsolePtr con tcod_console_get_height)
+
+foreign import ccall unsafe "console.h TCOD_console_get_default_background_ptr"
+  tcod_console_get_default_background :: Ptr ()
+                                         -> Ptr Color
+                                         -> IO ()
+
+getDefaultBackground :: Console -> IO Color
+getDefaultBackground con = withConsolePtr con $ \conp ->
+                           alloca $ \colp -> do
+                             tcod_console_get_default_background conp colp
+                             peek colp
+
+foreign import ccall unsafe "console.h TCOD_console_get_default_foreground_ptr"
+  tcod_console_get_default_foreground :: Ptr ()
+                                         -> Ptr Color
+                                         -> IO ()
+
+getDefaultForeground :: Console -> IO Color
+getDefaultForeground con = withConsolePtr con $ \conp ->
+                           alloca $ \colp -> do
+                             tcod_console_get_default_foreground conp colp
+                             peek colp
+
+foreign import ccall unsafe "console.h TCOD_console_get_char_background_ptr"
+  tcod_console_get_char_background :: Ptr ()
+                                      -> CInt
+                                      -> CInt
+                                      -> Ptr Color
+                                      -> IO ()
+
+getCharBackground :: Console -> (Int, Int) -> IO Color
+getCharBackground con (x, y) =
+  withConsolePtr con $ \conp ->
+  alloca $ \colp -> do
+    tcod_console_get_char_background conp x' y' colp
+    peek colp
+    where conv = CInt . fromIntegral
+          x' = conv x
+          y' = conv y
+
+foreign import ccall unsafe "console.h TCOD_console_get_char_foreground_ptr"
+  tcod_console_get_char_foreground :: Ptr ()
+                                      -> CInt
+                                      -> CInt
+                                      -> Ptr Color
+                                      -> IO ()
+
+getCharForeground :: Console -> (Int, Int) -> IO Color
+getCharForeground con (x, y) =
+  withConsolePtr con $ \conp ->
+  alloca $ \colp -> do
+    tcod_console_get_char_foreground conp x' y' colp
+    peek colp
+    where conv = CInt . fromIntegral
+          x' = conv x
+          y' = conv y
+
+foreign import ccall unsafe "console.h TCOD_console_get_char"
+  tcod_console_get_char :: Ptr ()
+                           -> CInt
+                           -> CInt
+                           -> IO CInt
+
+getChar_ :: Console -> (Int, Int) -> IO Char
+getChar_ con (x, y) = withConsolePtr con $ \conp ->
+                      tcod_console_get_char conp x' y' >>=
+                     (return . chr . fromIntegral)
+  where conv = CInt . fromIntegral
+        x' = conv x
+        y' = conv y
+
+foreign import ccall unsafe "console.h TCOD_console_set_fade_ptr"
+  tcod_console_set_fade :: CChar
+                           -> Ptr Color
+                           -> IO ()
+
+setFade :: Int -> Color -> IO ()
+setFade f c = alloca $ \cp -> do
+  poke cp c
+  tcod_console_set_fade (fromIntegral f) cp
+
+foreign import ccall unsafe "console.h TCOD_console_get_fade"
+  tcod_console_get_fade :: IO CChar
+
+getFade :: IO Int
+getFade = tcod_console_get_fade >>= (return . fromIntegral)
+
+foreign import ccall unsafe "console.h TCOD_console_get_fading_color_ptr"
+  tcod_console_get_fading_color :: Ptr Color
+                                   -> IO ()
+
+getFadingColor :: IO Color
+getFadingColor = alloca $ \p -> do
+  tcod_console_get_fading_color p
+  peek p
+
+foreign import ccall unsafe "console.h TCOD_console_flush"
+  tcod_console_flush :: IO ()
+
+flushConsole :: IO ()
+flushConsole = tcod_console_flush
+
+foreign import ccall unsafe "console.h TCOD_wait_for_keypress_ptr"
+  tcod_console_wait_for_keypress :: Bool
+                                    -> Ptr KeyEvent
+                                    -> IO ()
+
+waitForKeypress :: Bool -> IO KeyEvent
+waitForKeypress f =
+  alloca $ \kep ->
+  tcod_console_wait_for_keypress f kep >>
+  peek kep
+
+foreign import ccall unsafe "console.h TCOD_console_new"
+  tcod_console_new :: CInt
+                      -> CInt
+                      -> IO (Ptr ())
+
+initOffscreen :: Int -> Int -> IO Console
+initOffscreen w h = createConsole $ tcod_console_new w' h'
+  where conv = CInt . fromIntegral
+        w' = conv w
+        h' = conv h
+
+foreign import ccall unsafe "console.h TCOD_console_from_file"
+  tcod_console_from_file :: CString
+                            -> IO (Ptr ())
+
+initOffscreenFromFile :: String -> IO Console
+initOffscreenFromFile fname =
+  newCAString fname >>=
+  createConsole . tcod_console_from_file
+
+foreign import ccall unsafe "console.h TCOD_console_load_asc"
+  tcod_console_load_asc :: Ptr ()
+                           -> CString
+                           -> IO Bool
+
+loadASC :: Console -> String -> IO Bool
+loadASC RootConsole _ = return False
+loadASC con fname =
+  withConsolePtr con $ \conp ->
+  newCAString fname >>=
+  tcod_console_load_asc conp
+
+foreign import ccall unsafe "console.h TCOD_console_load_afp"
+  tcod_console_load_afp :: Ptr ()
+                           -> CString
+                           -> IO Bool
+
+loadAFP :: Console -> String -> IO Bool
+loadAFP RootConsole _ = return False
+loadAFP con fname =
+  withConsolePtr con $ \conp ->
+  newCAString fname >>=
+  tcod_console_load_afp conp
+
+foreign import ccall unsafe "console.h TCOD_console_save_asc"
+  tcod_console_save_asc :: Ptr ()
+                           -> CString
+                           -> IO Bool
+
+saveASC :: Console -> String -> IO Bool
+saveASC con fname =
+  withConsoelPtr con $ \conp ->
+  newCAString fname >>=
+  tcod_console_save_asc conp
+
+foreign import ccall unsafe "console.h TCOD_console_save_afp"
+  tcod_console_save_afp :: Ptr ()
+                           -> CString
+                           -> IO Bool
+
+saveAFP :: Console -> String -> IO Bool
+saveAFP con fname =
+  withConsolePtr con $ \conp ->
+  newCAString fname >>=
+  tcod_console_save_afp conp
+
+foreign import ccall unsafe "console.h TCOD_console_blit"
+  tcod_console_blit :: Ptr () -> CInt -> CInt -> CInt -> CInt
+                       -> Ptr () -> CInt -> CInt
+                       -> CFloat -> CFloat
+                       -> IO ()
+
+blit :: Console -> (Int, Int) -> (Int, Int)
+        -> Console -> (Int, Int) -> Float -> Float -> IO ()
+blit src (sx, sy) (sw, sh) dst (dx, dy) fga bga =
+  withConsolePtr src $ \srcp ->
+  withConsolePtr dst $ \dstp ->
+  tcod_console_blit srcp sx' sy' sw' sh' dstp dx' dy' fga' bga'
+  where i = CInt . fromIntegral
+        sx' = i sx
+        sy' = i sy
+        sw' = i sw
+        sh' = i sh
+        dx' = i dx
+        dy' = i dy
+        f = CFloat . fromRational
+        fga' = f fga
+        bga' = f bga
+
+foreign import ccall unsafe "console.h TCOD_console_set_key_color_ptr"
+  tcod_console_set_key_color :: Ptr ()
+                                -> Ptr Color
+                                -> IO ()
+
+setKeyColor :: Console -> Color -> IO ()
+setKeyColor con col =
+  withCOnsolePtr con $ \conp ->
+  alloca $ \colp ->
+  tcod_console_set_key_color conp colp
