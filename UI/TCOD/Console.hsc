@@ -628,7 +628,7 @@ foreign import ccall unsafe "console.h TCOD_console_save_asc"
 
 saveASC :: Console -> String -> IO Bool
 saveASC con fname =
-  withConsoelPtr con $ \conp ->
+  withConsolePtr con $ \conp ->
   newCAString fname >>=
   tcod_console_save_asc conp
 
