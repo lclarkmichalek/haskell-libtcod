@@ -98,7 +98,7 @@ createConsole rawC = do
   return $ Console fPtr
 
 deleteConsole :: Console -> IO ()
-deleteConsole RootConsole = return
+deleteConsole RootConsole = return ()
 deleteConsole (Console forp) = finalizeForeignPtr forp
 
 foreign import ccall "console.h TCOD_console_init_root"
@@ -662,7 +662,7 @@ blit src (sx, sy) (sw, sh) dst (dx, dy) fga bga =
         sh' = i sh
         dx' = i dx
         dy' = i dy
-        f = CFloat . fromRational
+        f = CFloat
         fga' = f fga
         bga' = f bga
 
@@ -673,6 +673,6 @@ foreign import ccall unsafe "console.h TCOD_console_set_key_color_ptr"
 
 setKeyColor :: Console -> Color -> IO ()
 setKeyColor con col =
-  withCOnsolePtr con $ \conp ->
+  withConsolePtr con $ \conp ->
   alloca $ \colp ->
   tcod_console_set_key_color conp colp
