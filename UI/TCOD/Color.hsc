@@ -1,4 +1,11 @@
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}
+{-|
+  The libtcod color subsystem is documented here:
+  <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/color.html?c=true>.
+  All C functions are exposed, though the large size of the color enums
+  meant that 'getColor' should be used instead.
+-}
+
 module UI.TCOD.Color
        ( Color
        , ColorName(..)
@@ -29,6 +36,8 @@ import Foreign.C.String
 
 #include "color.h"
 
+{-| An opaque wrapper around the libtcod Color type.
+-}
 data Color = Color { colorR, colorG, colorB :: #type uint8 }
            deriving (Show)
 
@@ -60,6 +69,8 @@ foreign import ccall unsafe "color.h TCOD_color_RGB_ptr"
                     -> Ptr Color
                     -> IO ()
 
+-- | Creates a color from an RGB triple. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/color.html?c=true#1>
 colorRGB :: Int8 -> Int8 -> Int8 -> Color
 colorRGB r g b = wrapPtr $ (tcod_color_RGB `mp3` fromIntegral) r g b
 
@@ -70,6 +81,8 @@ foreign import ccall unsafe "color.h TCOD_color_HSV_ptr"
                     -> Ptr Color
                     -> IO ()
 
+-- | Creates a color from a HSV (Hue, Saturation, Value) triple. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/color.html?c=true#1>
 colorHSV :: Float -> Float -> Float -> Color
 colorHSV h s v = wrapPtr $ (tcod_color_HSV `mp3` CFloat) h s v
 
@@ -92,6 +105,8 @@ foreign import ccall unsafe "color.h TCOD_color_add_ptr"
                     -> Ptr Color
                     -> IO ()
 
+-- | Adds two colors, as defined by libtcod. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/color.html?c=true#5>
 add :: Color -> Color -> Color
 add c1 c2 = unsafeLocalState $
             alloca $ \p1 ->
@@ -108,6 +123,8 @@ foreign import ccall unsafe "color.h TCOD_color_subtract_ptr"
                          -> Ptr Color
                          -> IO ()
 
+-- | Subtracts two colors, as defined by libtcod. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/color.html?c=true#6>
 sub :: Color -> Color -> Color
 sub c1 c2 = unsafeLocalState $
             alloca $ \p1 ->
@@ -124,6 +141,8 @@ foreign import ccall unsafe "color.h TCOD_color_multiply_ptr"
                          -> Ptr Color
                          -> IO ()
 
+-- | Multiplies two colors, as defined by libtcod. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/color.html?c=true#3>
 mul :: Color -> Color -> Color
 mul c1 c2 = unsafeLocalState $
             alloca $ \p1 ->
@@ -140,6 +159,8 @@ foreign import ccall unsafe "color.h TCOD_color_multiply_scalar_ptr"
                                 -> Ptr Color
                                 -> IO ()
 
+-- | Multiplies a color by a scalar, as defined by libtcod. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/color.html?c=true#4>
 mul_s :: Color -> Float -> Color
 mul_s c1 f = unsafeLocalState $
              alloca $ \p1 ->
@@ -155,6 +176,9 @@ foreign import ccall unsafe "color.h TCOD_color_lerp_ptr"
                      -> Ptr Color
                      -> IO ()
 
+-- | Performs linear interpolation between two colors, given a value
+--   in [0, 1]. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/color.html?c=true#7>
 lerp :: Color -> Color -> Float -> Color
 lerp c1 c2 l = unsafeLocalState $
                alloca $ \p1 ->
@@ -176,6 +200,7 @@ foreign import ccall unsafe "color.h TCOD_color_get_HSV_ptr"
                         -> Ptr CFloat
                         -> IO ()
 
+-- | Returns the HSV triple of a color
 getHSV :: Color -> (Float, Float, Float)
 getHSV c = unsafeLocalState $
            alloca $ \p ->
@@ -194,6 +219,8 @@ foreign import ccall unsafe "color.h TCOD_color_shift_hue"
                           -> CFloat
                           -> IO ()
 
+-- | Shifts the hue of a color. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/color.html?c=true#12>
 shiftHue :: Color -> Float -> Color
 shiftHue c f = unsafeLocalState $
                alloca $ \p -> do
@@ -207,6 +234,8 @@ foreign import ccall unsafe "color.h TCOD_color_scale_HSV"
                           -> CFloat
                           -> IO ()
 
+-- | Scales the saturation and value of a color. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/color.html?c=true#13>
 scaleHSV :: Color -> Float -> Float -> Color
 scaleHSV c f1 f2 = unsafeLocalState $
                    alloca $ \p -> do
@@ -221,6 +250,11 @@ foreign import ccall unsafe "color.h TCOD_color_gen_map"
                         -> Ptr CInt
                         -> IO()
 
+{-|
+  Generates a smooth list of colors, by interpolating between colors
+  in the input list. Wraps
+  <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/color.html?c=true#13>
+-}
 genMap :: [(Color, Int)] -> [Color]
 genMap is = unsafeLocalState $
             allocaArray (length is) $ \carr -> -- Color array
@@ -232,6 +266,7 @@ genMap is = unsafeLocalState $
               peekArray resLength oarr
   where resLength = maximum $ map snd is
 
+-- | The names of the color constants that libtcod implements
 data ColorName = Red
                | Flame
                | Orange
@@ -279,6 +314,7 @@ nameToIndex Crimson = #const TCOD_COLOR_CRIMSON
 
 colorNamesLength = #const TCOD_COLOR_NB
 
+-- | The levels of the color constants that libtcod implements
 data ColorLevel = Desaturated
                 | Lightest
                 | Lighter
@@ -303,6 +339,18 @@ colorLevelsLength = #const TCOD_COLOR_LEVELS
 foreign import ccall "color.h &TCOD_colors"
   tcod_colors :: Ptr Color
 
+{-|
+  A replacement for the large table of colors found at the top of
+  <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/color.html>.
+  The C constant
+@
+  TCOD_desaturated_red
+@
+  would be equivilent to
+@
+  getColor Desaturated Red
+@
+-}
 getColor :: ColorName -> ColorLevel -> Color
 getColor n l = unsafeLocalState . peek $ ptr
   where ptr = tcod_colors `advancePtr` ptrOffset
