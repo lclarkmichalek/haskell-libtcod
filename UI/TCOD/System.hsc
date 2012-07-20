@@ -20,6 +20,9 @@ module UI.TCOD.System
        , setRenderer
        , getRenderer
        , Renderer(..)
+
+       , setClipboard
+       , getClipboard
        ) where
 
 import UI.TCOD.Console.Types(Renderer(..))
@@ -136,3 +139,17 @@ foreign import ccall unsafe "sys.h TCOD_sys_get_renderer"
 
 getRenderer :: IO Renderer
 getRenderer = Renderer `fmap` tcod_get_renderer
+
+foreign import ccall unsafe "sys.h TCOD_sys_clipboard_set"
+  tcod_clipboard_set :: CString
+                        -> IO ()
+
+setClipboard :: String -> IO ()
+setClipboard s = newCAString s >>= tcod_clipboard_set
+
+foreign import ccall unsafe "sys.h TCOD_sys_clipboard_get"
+  tcod_clipboard_get :: IO CString
+
+-- TODO: Free the CString
+getClipboard :: IO String
+getClipboard = tcod_clipboard_get >>= peekCString
