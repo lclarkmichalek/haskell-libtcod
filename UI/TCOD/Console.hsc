@@ -1,13 +1,23 @@
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}
+{-|
+  The console subsystem deals with fairly low level drawing operations
+  onto the console. Due to the fact that the libtcod console
+  implementation relies heavily on mutable state, almost all functions
+  in this module are in the IO monad. The documentation for the
+  console subsystem can be found here:
+  <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console.html?c=true>
+-}
 module UI.TCOD.Console
-       ( Console(..)
+       ( Console
 
+       -- * Initialising the console
        , Renderer(..)
        , ConsoleConfig (..)
        , defaultConsoleConfig
        , initConsole
        , deleteConsole
 
+       -- * Loading custom fonts
        , FontFlag(..)
        , FontConfig(..)
        , defaultFontConfig
@@ -17,16 +27,19 @@ module UI.TCOD.Console
        , mapASCIICodesToFont
        , mapStringToFont
 
+       -- * Interacting with the window manager
        , isFullscreen
        , setFullscreen
 
        , setWindowTitle
        , isWindowClosed
 
+       -- * Displaying credits
        , credits
        , creditsRender
        , creditsReset
 
+        -- * Basic drawing functions
        , setDefaultBackground
        , setDefaultForeground
        , clear
@@ -37,11 +50,13 @@ module UI.TCOD.Console
        , putChar_
        , putCharEx
 
+       -- * Advanced drawing functions
        , rect
        , hLine
        , vLine
        , printFrame
 
+       -- * Getting console information
        , getWidth
        , getHeight
        , getDefaultBackground
@@ -50,12 +65,18 @@ module UI.TCOD.Console
        , getCharForeground
        , getChar
 
+       -- * Fading functions
        , setFade
        , getFade
        , getFadingColor
 
+       -- * Flushing the root console
        , flushConsole
 
+       -- * Getting input
+       , waitForKeypress
+
+       -- * Offscreen consoles
        , initOffscreen
        , initOffscreenFromFile
        , loadASC
@@ -63,6 +84,7 @@ module UI.TCOD.Console
        , saveASC
        , saveAFP
 
+       -- * Blitting
        , blit
        , setKeyColor
        ) where
@@ -80,6 +102,8 @@ import UI.TCOD.Console.Types
 
 #include "console.h"
 
+-- | An opaque wrapper around the libtcod console type. Represents
+--   both the root console and offscreen consoles
 data Console = Console (ForeignPtr ())
              | RootConsole
 
@@ -90,13 +114,14 @@ withConsolePtr RootConsole f = f nullPtr
 foreign import ccall "console.h &TCOD_console_delete_ptr"
   tcod_console_delete :: FunPtr (Ptr () -> IO ())
 
--- Creates a finalised console from a raw console pointer
+--Creates a finalised console from a raw console pointer
 createConsole :: IO (Ptr ()) -> IO Console
 createConsole rawC = do
   rawC' <- rawC
   fPtr <- newForeignPtr (tcod_console_delete) rawC'
   return $ Console fPtr
 
+-- | Deletes the current console. This function is idempotent.
 deleteConsole :: Console -> IO ()
 deleteConsole RootConsole = return ()
 deleteConsole (Console forp) = finalizeForeignPtr forp
@@ -109,18 +134,22 @@ foreign import ccall "console.h TCOD_console_init_root"
                          -> CInt
                          -> IO ()
 
--- Configuration for the tcod console.
+-- | Configuration for the root tcod console.
 data ConsoleConfig = ConsoleConfig
                      { consoleFullscreen :: Bool
                      , consoleRenderer :: Renderer
                      } deriving (Eq, Show)
 
--- The default tcod console config, as defined in tcod C++ headers.
+-- | The default tcod console config, as defined in tcod C++ headers.
 defaultConsoleConfig = ConsoleConfig False renderGLSL
 
-{- Initialises the root tcod console. `width` and `height` are the
-   width and height of the console in characters, as defined by the
-   console font (the default font uses 8x8 pixel characters). -}
+{-|
+  Initialises the root tcod console. `width` and `height` are the
+  width and height of the console in characters, as defined by the
+  console font (the default font uses 8x8 pixel characters).
+
+  Wraps <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_init_root.html?c=true>
+-}
 initConsole :: Int -> Int -> String -> ConsoleConfig -> IO Console
 initConsole width height windowName config = do
   windowName' <- newCAString windowName
@@ -139,19 +168,24 @@ foreign import ccall "console.h TCOD_console_set_custom_font"
                                   -> CInt
                                   -> IO ()
 
+-- | Configuration for loading custom fonts
 data FontConfig = FontConfig
                   { fontFlags :: FontFlag
                   , fontCharsHorizontal :: Int
                   , fontCharsVertical :: Int
                   } deriving (Eq, Show)
 
--- The default font config, as specified in the official libtcod C++ bindings
+-- | The default font config, as specified in the libtcod C++ bindings
 defaultFontConfig :: FontConfig
 defaultFontConfig = FontConfig fontLayoutASCIICol 0 0
 
-{- Loads a custom font file to be used on the root console. This
-   should be called before initialising the root console with
-   `initConsole `-}
+{-|
+  Loads a custom font file to be used on the root console. This
+  should be called before initialising the root console with
+  'initConsole'
+
+  Wraps <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_set_custom_font.html?c=true>
+-}
 setCustomFont :: String -> FontConfig -> IO()
 setCustomFont filename config = do
   filename' <- newCAString filename
@@ -166,8 +200,9 @@ foreign import ccall "console.h TCOD_console_map_ascii_code_to_font"
                                  -> CInt
                                  -> IO()
 
--- Maps an ASCII code to a coordinate on the current font. Takes the
--- code to be mapped, and a coordinate.
+-- | Maps an ASCII code to a coordinate on the current font. Takes the
+--   code to be mapped, and a coordinate. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_map.html?c=true#0>
 mapASCIICodeToFont :: Char -> Int -> Int -> IO()
 mapASCIICodeToFont c x y =
   tcod_console_map_ascii_font (fromIntegral (ord c))
@@ -180,9 +215,10 @@ foreign import ccall "console.h TCOD_console_map_ascii_codes_to_font"
                                   -> CInt
                                   -> IO()
 
--- Maps consecutive ASCII codes to consecutive characters in the
--- current font. Takes the first character to be mapped, the number
--- of characters to be mapped, and the coordinate of the first character
+-- | Maps consecutive ASCII codes to consecutive characters in the
+--   current font. Takes the first character to be mapped, the number
+--   of characters to be mapped, and the coordinate of the first character.
+--   Wraps <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_map.html?c=true#1>
 mapASCIICodesToFont :: Char -> Int -> Int -> Int -> IO()
 mapASCIICodesToFont c n x y =
   tcod_console_map_ascii_fonts (fromIntegral (ord c)) (fromIntegral n)
@@ -194,9 +230,10 @@ foreign import ccall "console.h TCOD_console_map_string_to_font"
                                   -> CInt
                                   -> IO()
 
--- Maps characters in a string to consecutive characters in the
--- current font. Takes the string to be mapped, and the coordinates
--- of the first character.
+-- | Maps characters in a string to consecutive characters in the
+--   current font. Takes the string to be mapped, and the coordinates
+--   of the first character. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_map.html?c=true#2>
 mapStringToFont :: String -> Int -> Int -> IO()
 mapStringToFont s x y= do
   s' <- newCAString s
@@ -205,34 +242,39 @@ mapStringToFont s x y= do
 foreign import ccall "console.h TCOD_console_is_fullscreen"
   tcod_console_is_fullscreen :: IO Bool
 
--- Tests if the root console is fullscreened or not
+-- | Tests if the root console is fullscreened or not. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_fullscreen.html?c=true#0>
 isFullscreen = tcod_console_is_fullscreen
 
 foreign import ccall "console.h TCOD_console_set_fullscreen"
   tcod_console_set_fullscreen :: Bool -> IO()
 
--- Sets the console to be fullscreen or not.
+-- | Sets the console to be fullscreen or not. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_fullscreen.html?c=true#1>
 setFullscreen = tcod_console_set_fullscreen
 
 foreign import ccall "console.h TCOD_console_set_window_title"
   tcod_console_set_window_title :: CString  -> IO()
 
--- Sets the root window title
+-- | Sets the root window title. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_window.html?c=true#0>
 setWindowTitle :: String -> IO ()
 setWindowTitle s = (newCAString s) >>= tcod_console_set_window_title
 
 foreign import ccall "console.h TCOD_console_is_window_closed"
   tcod_console_is_window_closed :: IO Bool
 
--- Returns true if the window is closed. The program should then exit
--- cleanly.
+-- | Returns true if the window is closed. The program should then exit
+--   cleanly. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_window.html?c=true#1>
 isWindowClosed :: IO Bool
 isWindowClosed = tcod_console_is_window_closed
 
 foreign import ccall "console.h TCOD_console_credits"
   tcod_console_credits :: IO ()
 
--- Prints out the tcod credits on the root console.
+-- | Prints out the tcod credits onto the root console. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_credits.html?c=true#0>
 credits :: IO ()
 credits = tcod_console_credits
 
@@ -242,17 +284,19 @@ foreign import ccall "console.h TCOD_console_credits_render"
                                  -> Bool
                                  -> IO Bool
 
--- Prints out the tcod credits at the specified position,
--- transparently if alpha is true. Returns true when the credits have
--- finished.
-creditsRender :: Int -> Int -> Bool -> IO Bool
-creditsRender x y a = tcod_console_credits_render
+-- | Prints out the tcod credits at the specified position,
+--   transparently if alpha is true. Returns true when the credits have
+--   finished. Wraps
+--   <doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_credits.html?c=true#1>
+creditsRender :: (Int, Int) -> Bool -> IO Bool
+creditsRender (x, y) a = tcod_console_credits_render
                       (fromIntegral x) (fromIntegral y) a
 
 foreign import ccall "console.h TCOD_console_credits_reset"
   tcod_console_credits_reset :: IO ()
 
--- Resets the credits that have been started by `creditsRender`
+-- | Resets the credits that have been started by 'creditsRender'. Wraps
+--   <doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_credits.html?c=true#2>
 creditsReset :: IO()
 creditsReset = tcod_console_credits_reset
 
@@ -261,7 +305,8 @@ foreign import ccall "console.h TCOD_console_set_default_background_ptr"
                                          -> Ptr Color
                                          -> IO ()
 
--- Sets the default background colour of the console
+-- | Sets the default background colour of the console. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_draw_basic.html?c=true#0>
 setDefaultBackground :: Console -> Color -> IO ()
 setDefaultBackground con col =
   alloca $ \colp ->
@@ -274,7 +319,8 @@ foreign import ccall "console.h TCOD_console_set_default_foreground_ptr"
                                          -> Ptr Color
                                          -> IO ()
 
--- Sets the default background colour of the console
+-- | Sets the default background colour of the console. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_draw_basic.html?c=true#1>
 setDefaultForeground :: Console -> Color -> IO ()
 setDefaultForeground con col =
   alloca $ \colp ->
@@ -286,7 +332,8 @@ foreign import ccall "console.h TCOD_console_clear"
   tcod_console_clear :: Ptr ()
                         -> IO ()
 
--- Clears the console
+-- | Clears the console. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_draw_basic.html?c=true#2>
 clear :: Console -> IO ()
 clear con = withConsolePtr con $ \conp -> do
   tcod_console_clear conp
@@ -299,6 +346,8 @@ foreign import ccall "console.h TCOD_console_set_char_background_ptr"
                                 -> CInt
                                 -> IO ()
 
+-- | Sets the background color of a cell. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_draw_basic.html?c=true#3>
 setCharBackground :: Console -> (Int, Int) -> Color -> BackgroundFlag -> IO ()
 setCharBackground con (x, y) col bf =
   withConsolePtr con $ \conp ->
@@ -316,6 +365,8 @@ foreign import ccall "console.h TCOD_console_set_char_foreground_ptr"
                                 -> Ptr Color
                                 -> IO ()
 
+-- | Sets the foreground color of a cell. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_draw_basic.html?c=true#4>
 setCharForeground :: Console -> (Int, Int) -> Color -> IO ()
 setCharForeground con (x, y) col =
   withConsolePtr con $ \conp ->
@@ -332,6 +383,8 @@ foreign import ccall "console.h TCOD_console_set_char"
                            -> CInt
                            -> IO ()
 
+-- | Set the ASCII code of the cell. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_draw_basic.html?c=true#5>
 setChar :: Console -> (Int, Int) -> Char -> IO ()
 setChar con (x, y) char = withConsolePtr con $ \conp -> do
   tcod_console_set_char conp x' y' char'
@@ -348,6 +401,9 @@ foreign import ccall "console.h TCOD_console_put_char"
                            -> CInt
                            -> IO ()
 
+-- | Sets all the properties of a cell, using the default foreground color, and
+--   modifying the background color according to the 'BackgroundFlag'.
+--   Wraps <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_draw_basic.html?c=true#6>
 putChar_ :: Console -> (Int, Int) -> Char -> BackgroundFlag -> IO ()
 putChar_ con (x, y) char (BackgroundFlag bf) = withConsolePtr con $ \conp -> do
   tcod_console_put_char conp x' y' char' bf
@@ -365,6 +421,8 @@ foreign import ccall "console.h TCOD_console_put_char_ex_ptr"
                               -> Ptr Color
                               -> IO ()
 
+-- | Sets all the properties of a cell, using specific colors. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_draw_basic.html?c=true#7>
 putCharEx :: Console -> (Int, Int) -> Char -> Color -> Color -> IO ()
 putCharEx con (x, y) char for bak =
   withConsolePtr con $ \conp ->
@@ -388,6 +446,8 @@ foreign import ccall "console.h TCOD_console_rect"
                        -> CInt
                        -> IO ()
 
+-- | Fill a rectangle with a background color. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_advanced.html?c=true#0>
 rect :: Console -> (Int, Int) -> (Int, Int) -> Bool -> BackgroundFlag -> IO ()
 rect con (x, y) (w, h) c (BackgroundFlag bf) = withConsolePtr con $ \conp -> do
   tcod_console_rect conp x' y' w' h' c bf
@@ -405,6 +465,8 @@ foreign import ccall "console.h TCOD_console_hline"
                         -> CInt
                         -> IO ()
 
+-- | Draw a horizontal line using a horizontal bar character. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_advanced.html?c=true#1>
 hLine :: Console -> (Int, Int) -> Int -> BackgroundFlag -> IO ()
 hLine con (x, y) l (BackgroundFlag bf) = withConsolePtr con $ \conp ->
   tcod_console_hline conp x' y' l' bf
@@ -421,6 +483,8 @@ foreign import ccall "console.h TCOD_console_vline"
                         -> CInt
                         -> IO ()
 
+-- | Draws a vertical line using a vertical bar character. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_advanced.html?c=true#2>
 vLine :: Console -> (Int, Int) -> Int -> BackgroundFlag -> IO ()
 vLine con (x, y) l (BackgroundFlag bf) = withConsolePtr con $ \conp ->
   tcod_console_vline conp x' y' l' bf
@@ -440,6 +504,8 @@ foreign import ccall "console.h TCOD_console_print_frame"
                               -> Ptr ()
                               -> IO ()
 
+-- | Draws a rectangular frame. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_advanced.html?c=true#3>
 printFrame :: Console -> (Int, Int) -> (Int, Int)
               -> Bool -> BackgroundFlag -> IO ()
 printFrame con (x, y) (w, h) clear (BackgroundFlag bf) =
@@ -455,6 +521,10 @@ foreign import ccall unsafe "console.h TCOD_console_get_width"
   tcod_console_get_width :: Ptr ()
                             -> IO CInt
 
+-- | Returns the width of the console. This function is only in the IO
+--   monad as the size of offscreen console can be changed when
+--   loading an afp file. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_read.html?c=true#0>
 getWidth :: Console -> IO Int
 getWidth con = fromIntegral `fmap` (withConsolePtr con tcod_console_get_width)
 
@@ -462,6 +532,8 @@ foreign import ccall unsafe "console.h TCOD_console_get_height"
   tcod_console_get_height :: Ptr ()
                             -> IO CInt
 
+-- | Returns the height of the console. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_read.html?c=true#1>
 getHeight :: Console -> IO Int
 getHeight con = fromIntegral `fmap` (withConsolePtr con tcod_console_get_height)
 
@@ -470,6 +542,8 @@ foreign import ccall unsafe "console.h TCOD_console_get_default_background_ptr"
                                          -> Ptr Color
                                          -> IO ()
 
+-- | Returns the default background color. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_read.html?c=true#2>
 getDefaultBackground :: Console -> IO Color
 getDefaultBackground con = withConsolePtr con $ \conp ->
                            alloca $ \colp -> do
@@ -481,6 +555,8 @@ foreign import ccall unsafe "console.h TCOD_console_get_default_foreground_ptr"
                                          -> Ptr Color
                                          -> IO ()
 
+-- | Returns the default foreground color. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_read.html?c=true#3>
 getDefaultForeground :: Console -> IO Color
 getDefaultForeground con = withConsolePtr con $ \conp ->
                            alloca $ \colp -> do
@@ -494,6 +570,8 @@ foreign import ccall unsafe "console.h TCOD_console_get_char_background_ptr"
                                       -> Ptr Color
                                       -> IO ()
 
+-- | Returns the background color of a cell. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_read.html?c=true#4>
 getCharBackground :: Console -> (Int, Int) -> IO Color
 getCharBackground con (x, y) =
   withConsolePtr con $ \conp ->
@@ -511,6 +589,8 @@ foreign import ccall unsafe "console.h TCOD_console_get_char_foreground_ptr"
                                       -> Ptr Color
                                       -> IO ()
 
+-- | Returns the foreground color of a cell. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_read.html?c=true#5>
 getCharForeground :: Console -> (Int, Int) -> IO Color
 getCharForeground con (x, y) =
   withConsolePtr con $ \conp ->
@@ -527,6 +607,8 @@ foreign import ccall unsafe "console.h TCOD_console_get_char"
                            -> CInt
                            -> IO CInt
 
+-- | Returns the ASCII code of a cell. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_read.html?c=true#6>
 getChar_ :: Console -> (Int, Int) -> IO Char
 getChar_ con (x, y) = withConsolePtr con $ \conp ->
                       tcod_console_get_char conp x' y' >>=
@@ -540,6 +622,8 @@ foreign import ccall unsafe "console.h TCOD_console_set_fade_ptr"
                            -> Ptr Color
                            -> IO ()
 
+-- | Sets the fading parameters. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_fading.html?c=true#0>
 setFade :: Int -> Color -> IO ()
 setFade f c = alloca $ \cp -> do
   poke cp c
@@ -548,6 +632,8 @@ setFade f c = alloca $ \cp -> do
 foreign import ccall unsafe "console.h TCOD_console_get_fade"
   tcod_console_get_fade :: IO CUChar
 
+-- | The fade amount. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_fading.html?c=true#1>
 getFade :: IO Int
 getFade = tcod_console_get_fade >>= (return . fromIntegral)
 
@@ -555,6 +641,8 @@ foreign import ccall unsafe "console.h TCOD_console_get_fading_color_ptr"
   tcod_console_get_fading_color :: Ptr Color
                                    -> IO ()
 
+-- | The fading color. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_fading.html?c=true#2>
 getFadingColor :: IO Color
 getFadingColor = alloca $ \p -> do
   tcod_console_get_fading_color p
@@ -563,6 +651,8 @@ getFadingColor = alloca $ \p -> do
 foreign import ccall unsafe "console.h TCOD_console_flush"
   tcod_console_flush :: IO ()
 
+-- | Flushes the root console to the screen. Wraps
+--   <doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_flush.html?c=true>
 flushConsole :: IO ()
 flushConsole = tcod_console_flush
 
@@ -571,6 +661,9 @@ foreign import ccall unsafe "console.h TCOD_wait_for_keypress_ptr"
                                     -> Ptr KeyEvent
                                     -> IO ()
 
+-- | Waits for a keypress. If passed True, will flush all pending
+--   keypresses. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_blocking_input.html?c=true#0>
 waitForKeypress :: Bool -> IO KeyEvent
 waitForKeypress f =
   alloca $ \kep ->
@@ -582,6 +675,8 @@ foreign import ccall unsafe "console.h TCOD_console_new"
                       -> CInt
                       -> IO (Ptr ())
 
+-- | Creates a new offscreen console. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#0>
 initOffscreen :: Int -> Int -> IO Console
 initOffscreen w h = createConsole $ tcod_console_new w' h'
   where conv = CInt . fromIntegral
@@ -592,6 +687,8 @@ foreign import ccall unsafe "console.h TCOD_console_from_file"
   tcod_console_from_file :: CString
                             -> IO (Ptr ())
 
+-- | Creates a new offscreen console from an afp or asc file. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#1>
 initOffscreenFromFile :: String -> IO Console
 initOffscreenFromFile fname =
   newCAString fname >>=
@@ -602,6 +699,9 @@ foreign import ccall unsafe "console.h TCOD_console_load_asc"
                            -> CString
                            -> IO Bool
 
+-- | Loads an ASC file to an offscreen console. Returns False if the
+--   file could not be read. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#2>
 loadASC :: Console -> String -> IO Bool
 loadASC RootConsole _ = return False
 loadASC con fname =
@@ -614,6 +714,9 @@ foreign import ccall unsafe "console.h TCOD_console_load_afp"
                            -> CString
                            -> IO Bool
 
+-- | Loads an AFP file to an offscreen console. Returns False if the
+--   file could not be read. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#3>
 loadAFP :: Console -> String -> IO Bool
 loadAFP RootConsole _ = return False
 loadAFP con fname =
@@ -626,6 +729,9 @@ foreign import ccall unsafe "console.h TCOD_console_save_asc"
                            -> CString
                            -> IO Bool
 
+-- | Saves an offscreen console to an ASC file. Returns False if the
+--   file could not be written. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#4>
 saveASC :: Console -> String -> IO Bool
 saveASC con fname =
   withConsolePtr con $ \conp ->
@@ -637,6 +743,9 @@ foreign import ccall unsafe "console.h TCOD_console_save_afp"
                            -> CString
                            -> IO Bool
 
+-- | Saves an offscreen console to an AFP file. Returns False if the
+--   file could not be written. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#5>
 saveAFP :: Console -> String -> IO Bool
 saveAFP con fname =
   withConsolePtr con $ \conp ->
@@ -649,6 +758,11 @@ foreign import ccall unsafe "console.h TCOD_console_blit"
                        -> CFloat -> CFloat
                        -> IO ()
 
+-- | Blits one console onto another. Takes the source console, the
+--   top left coordinate of the region to blit, and the width and
+--   height of the region to blit, then the destination console and
+--   the coordinate to blit to. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#6>
 blit :: Console -> (Int, Int) -> (Int, Int)
         -> Console -> (Int, Int) -> Float -> Float -> IO ()
 blit src (sx, sy) (sw, sh) dst (dx, dy) fga bga =
@@ -671,6 +785,8 @@ foreign import ccall unsafe "console.h TCOD_console_set_key_color_ptr"
                                 -> Ptr Color
                                 -> IO ()
 
+-- | Sets the key color of a console for blitting. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#7>
 setKeyColor :: Console -> Color -> IO ()
 setKeyColor con col =
   withConsolePtr con $ \conp ->
