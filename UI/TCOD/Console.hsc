@@ -675,6 +675,8 @@ foreign import ccall unsafe "console.h TCOD_console_new"
                       -> CInt
                       -> IO (Ptr ())
 
+-- TODO: Implement the rest of the input functions
+
 -- | Creates a new offscreen console. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#0>
 initOffscreen :: Int -> Int -> IO Console
