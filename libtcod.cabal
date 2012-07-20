@@ -17,13 +17,15 @@ cabal-version:       >=1.8
 library
   exposed-modules:
     UI.TCOD
-    UI.TCOD.Console
-    UI.TCOD.Console.Types
     UI.TCOD.Color
-  --  other-modules:
+    UI.TCOD.Console
+    UI.TCOD.System
+  other-modules:
+    UI.TCOD.Console.Types
   C-sources:
     UI/TCOD/color.c
     UI/TCOD/console.c
+    UI/TCOD/sys.c
   Include-dirs:
     UI/TCOD
   extra-libraries:     tcod
