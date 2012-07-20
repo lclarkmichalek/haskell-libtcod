@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}
 module UI.TCOD.Color
-       ( Color(..)
+       ( Color
        , ColorName(..)
        , ColorLevel(..)
        , colorRGB
@@ -10,8 +10,8 @@ module UI.TCOD.Color
        , mul
        , mul_s
        , lerp
-       , setHSV
        , getHSV
+       , getRGB
        , shiftHue
        , scaleHSV
        , genMap
@@ -165,19 +165,9 @@ lerp c1 c2 l = unsafeLocalState $
                  tcod_color_lerp p1 p2 (CFloat l) res
                  peek res
 
-foreign import ccall unsafe "color.h TCOD_color_set_HSV"
-  tcod_color_set_hsv :: Ptr Color
-                        -> CFloat
-                        -> CFloat
-                        -> CFloat
-                        -> IO ()
-
-setHSV :: Color -> Float -> Float -> Float -> Color
-setHSV c h s v = unsafeLocalState $
-                 alloca $ \p -> do
-                   poke p c
-                   tcod_color_set_hsv p (CFloat h) (CFloat s) (CFloat v)
-                   peek p
+-- | Returns the RGB triple of a color
+getRGB :: Color -> (Int8, Int8, Int8)
+getRGB (Color r g b) = (fromIntegral r, fromIntegral g, fromIntegral b)
 
 foreign import ccall unsafe "color.h TCOD_color_get_HSV_ptr"
   tcod_color_get_hsv :: Ptr Color
