@@ -536,7 +536,7 @@ getChar_ con (x, y) = withConsolePtr con $ \conp ->
         y' = conv y
 
 foreign import ccall unsafe "console.h TCOD_console_set_fade_ptr"
-  tcod_console_set_fade :: CChar
+  tcod_console_set_fade :: CUChar
                            -> Ptr Color
                            -> IO ()
 
@@ -546,7 +546,7 @@ setFade f c = alloca $ \cp -> do
   tcod_console_set_fade (fromIntegral f) cp
 
 foreign import ccall unsafe "console.h TCOD_console_get_fade"
-  tcod_console_get_fade :: IO CChar
+  tcod_console_get_fade :: IO CUChar
 
 getFade :: IO Int
 getFade = tcod_console_get_fade >>= (return . fromIntegral)
