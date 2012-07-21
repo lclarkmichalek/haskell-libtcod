@@ -701,11 +701,28 @@ foreign import ccall unsafe "console.h TCOD_console_is_key_pressed"
 isKeyPressed :: Keycode -> IO Bool
 isKeyPressed (Keycode kc) = tcod_console_is_key_pressed kc
 
+foreign import ccall unsafe "console.h TCOD_console_set_keyboard_repeat"
+  tcod_console_set_keyboard_repeat :: CInt
+                                      -> CInt
+                                      -> IO ()
+
+-- | Sets the keyboard repeat interval (the interval at which a
+--   held key will trigger a key press event). Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_keyboard_repeat.html?c=true#0>
+--
+--   To disable keyboard repeat altogether, run
+-- @
+--   setKeyboardRepeat 0 0
+-- @
+setKeyboardRepeat :: Int -> Int -> IO ()
+setKeyboardRepeat start repeat =
+  tcod_console_set_keyboard_repeat (conv start) (conv repeat)
+  where conv = CInt . fromIntegral
+
 foreign import ccall unsafe "console.h TCOD_console_new"
   tcod_console_new :: CInt
                       -> CInt
                       -> IO (Ptr ())
-
 
 -- | Creates a new offscreen console. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#0>
