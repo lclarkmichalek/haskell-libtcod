@@ -22,6 +22,7 @@ void TCOD_console_set_fade_ptr(uint8, TCOD_color_t*);
 void TCOD_console_get_fading_color_ptr(TCOD_color_t*);
 
 void TCOD_console_wait_for_keypress_ptr(bool, TCOD_key_t*);
+void TCOD_console_check_for_keypress_ptr(int, TCOD_key_t*);
 
 void TCOD_console_set_key_color_ptr(TCOD_console_t, TCOD_color_t*);
 

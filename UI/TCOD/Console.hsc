@@ -75,6 +75,7 @@ module UI.TCOD.Console
 
        -- * Getting input
        , waitForKeypress
+       , checkForKeypress
 
        -- * Offscreen consoles
        , initOffscreen
@@ -656,7 +657,7 @@ foreign import ccall unsafe "console.h TCOD_console_flush"
 flushConsole :: IO ()
 flushConsole = tcod_console_flush
 
-foreign import ccall unsafe "console.h TCOD_wait_for_keypress_ptr"
+foreign import ccall unsafe "console.h TCOD_console_wait_for_keypress_ptr"
   tcod_console_wait_for_keypress :: Bool
                                     -> Ptr KeyEvent
                                     -> IO ()
@@ -670,12 +671,29 @@ waitForKeypress f =
   tcod_console_wait_for_keypress f kep >>
   peek kep
 
+foreign import ccal unsafe "console.h TCOD_console_check_for_keypress_ptr"
+  tcod_console_check_for_keypress :: CInt
+                                     -> Ptr KeyEvent
+                                     -> IO ()
+
+-- | Checks for a keypress. The 'KeyStatus' is the status of key event
+--   that should be checked for. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_non_blocking_input.html?c=true#0>
+checkForKeypress :: KeyStatus -> IO (Maybe KeyEvent)
+checkForKeypress (KeyStatus s) =
+  alloca $ \kep -> do
+    tcod_console_check_for_keypress s kep
+    ke <- peek kep
+    return $ if eventCode ke == kNone
+             then Nothing
+             else Just ke
+
+-- TODO: Implement the rest of the input functions
+
 foreign import ccall unsafe "console.h TCOD_console_new"
   tcod_console_new :: CInt
                       -> CInt
                       -> IO (Ptr ())
-
--- TODO: Implement the rest of the input functions
 
 -- | Creates a new offscreen console. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#0>

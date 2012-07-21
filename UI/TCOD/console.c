@@ -60,6 +60,10 @@ void TCOD_console_wait_for_keypress_ptr(bool flush, TCOD_key_t* k) {
     *k = TCOD_console_wait_for_keypress(flush);
 }
 
+void TCOD_console_check_for_keypress_ptr(int flags, TCOD_key_t* k) {
+    *k = TCOD_console_check_for_keypress(flags);
+}
+
 void TCOD_console_set_key_color_ptr(TCOD_console_t con, TCOD_color_t* col) {
     TCOD_console_set_key_color(con, *col);
 }
