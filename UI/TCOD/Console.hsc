@@ -76,6 +76,7 @@ module UI.TCOD.Console
        -- * Getting input
        , waitForKeypress
        , checkForKeypress
+       , isKeyPressed
 
        -- * Offscreen consoles
        , initOffscreen
@@ -678,8 +679,6 @@ foreign import ccal unsafe "console.h TCOD_console_check_for_keypress_ptr"
                                      -> Ptr KeyEvent
                                      -> IO ()
 
--- |
-
 -- | Checks for a keypress. The 'KeyStatus' is the status of key event
 --   that should be checked for. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_non_blocking_input.html?c=true#0>
@@ -694,7 +693,13 @@ checkForKeypress (KeyStatus s) =
              then Nothing
              else Just ke
 
--- TODO: Implement the rest of the input functions
+foreign import ccall unsafe "console.h TCOD_console_is_key_pressed"
+  tcod_console_is_key_pressed :: CInt
+                                 -> IO Bool
+
+-- | Returns True if the special key is pressed.
+isKeyPressed :: KeyCode -> IO Bool
+isKeyPressed (KeyCode kc) = tcod_console_is_key_pressed kc
 
 foreign import ccall unsafe "console.h TCOD_console_new"
   tcod_console_new :: CInt
