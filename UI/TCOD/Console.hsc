@@ -674,7 +674,7 @@ waitForKeypress f =
   tcod_console_wait_for_keypress f kep >>
   peek kep
 
-foreign import ccal unsafe "console.h TCOD_console_check_for_keypress_ptr"
+foreign import ccall unsafe "console.h TCOD_console_check_for_keypress_ptr"
   tcod_console_check_for_keypress :: CInt
                                      -> Ptr KeyEvent
                                      -> IO ()
@@ -698,13 +698,14 @@ foreign import ccall unsafe "console.h TCOD_console_is_key_pressed"
                                  -> IO Bool
 
 -- | Returns True if the special key is pressed.
-isKeyPressed :: KeyCode -> IO Bool
-isKeyPressed (KeyCode kc) = tcod_console_is_key_pressed kc
+isKeyPressed :: Keycode -> IO Bool
+isKeyPressed (Keycode kc) = tcod_console_is_key_pressed kc
 
 foreign import ccall unsafe "console.h TCOD_console_new"
   tcod_console_new :: CInt
                       -> CInt
                       -> IO (Ptr ())
+
 
 -- | Creates a new offscreen console. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#0>
