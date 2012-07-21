@@ -82,9 +82,9 @@ module UI.TCOD.Console
        , initOffscreen
        , initOffscreenFromFile
        , loadASC
-       , loadAFP
+       , loadAPF
        , saveASC
-       , saveAFP
+       , saveAPF
 
        -- * Blitting
        , blit
@@ -525,7 +525,7 @@ foreign import ccall unsafe "console.h TCOD_console_get_width"
 
 -- | Returns the width of the console. This function is only in the IO
 --   monad as the size of offscreen console can be changed when
---   loading an afp file. Wraps
+--   loading an apf file. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_read.html?c=true#0>
 getWidth :: Console -> IO Int
 getWidth con = fromIntegral `fmap` (withConsolePtr con tcod_console_get_width)
@@ -736,7 +736,7 @@ foreign import ccall unsafe "console.h TCOD_console_from_file"
   tcod_console_from_file :: CString
                             -> IO (Ptr ())
 
--- | Creates a new offscreen console from an afp or asc file. Wraps
+-- | Creates a new offscreen console from an apf or asc file. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#1>
 initOffscreenFromFile :: String -> IO Console
 initOffscreenFromFile fname =
@@ -758,20 +758,20 @@ loadASC con fname =
   newCAString fname >>=
   tcod_console_load_asc conp
 
-foreign import ccall unsafe "console.h TCOD_console_load_afp"
-  tcod_console_load_afp :: Ptr ()
+foreign import ccall unsafe "console.h TCOD_console_load_apf"
+  tcod_console_load_apf :: Ptr ()
                            -> CString
                            -> IO Bool
 
--- | Loads an AFP file to an offscreen console. Returns False if the
+-- | Loads an APF file to an offscreen console. Returns False if the
 --   file could not be read. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#3>
-loadAFP :: Console -> String -> IO Bool
-loadAFP RootConsole _ = return False
-loadAFP con fname =
+loadAPF :: Console -> String -> IO Bool
+loadAPF RootConsole _ = return False
+loadAPF con fname =
   withConsolePtr con $ \conp ->
   newCAString fname >>=
-  tcod_console_load_afp conp
+  tcod_console_load_apf conp
 
 foreign import ccall unsafe "console.h TCOD_console_save_asc"
   tcod_console_save_asc :: Ptr ()
@@ -787,19 +787,19 @@ saveASC con fname =
   newCAString fname >>=
   tcod_console_save_asc conp
 
-foreign import ccall unsafe "console.h TCOD_console_save_afp"
-  tcod_console_save_afp :: Ptr ()
+foreign import ccall unsafe "console.h TCOD_console_save_apf"
+  tcod_console_save_apf :: Ptr ()
                            -> CString
                            -> IO Bool
 
--- | Saves an offscreen console to an AFP file. Returns False if the
+-- | Saves an offscreen console to an APF file. Returns False if the
 --   file could not be written. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_offscreen.html?c=true#5>
-saveAFP :: Console -> String -> IO Bool
-saveAFP con fname =
+saveAPF :: Console -> String -> IO Bool
+saveAPF con fname =
   withConsolePtr con $ \conp ->
   newCAString fname >>=
-  tcod_console_save_afp conp
+  tcod_console_save_apf conp
 
 foreign import ccall unsafe "console.h TCOD_console_blit"
   tcod_console_blit :: Ptr () -> CInt -> CInt -> CInt -> CInt

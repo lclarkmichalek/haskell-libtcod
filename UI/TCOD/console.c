@@ -38,13 +38,13 @@ void TCOD_console_get_default_foreground_ptr(TCOD_console_t con, TCOD_color_t* c
     *col = TCOD_console_get_default_foreground(con);
 }
 
-void TCOD_console_get_car_background_ptr(TCOD_console_t con, int x, int y,
-                                       TCOD_color_t* col) {
+void TCOD_console_get_char_background_ptr(TCOD_console_t con, int x, int y,
+                                          TCOD_color_t* col) {
     *col = TCOD_console_get_char_background(con, x, y);
 }
 
-void TCOD_console_get_car_foreground_ptr(TCOD_console_t con, int x, int y,
-                                       TCOD_color_t* col) {
+void TCOD_console_get_char_foreground_ptr(TCOD_console_t con, int x, int y,
+                                          TCOD_color_t* col) {
     *col = TCOD_console_get_char_foreground(con, x, y);
 }
 
