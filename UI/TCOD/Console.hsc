@@ -665,6 +665,8 @@ foreign import ccall unsafe "console.h TCOD_console_wait_for_keypress_ptr"
 -- | Waits for a keypress. If passed True, will flush all pending
 --   keypresses. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_blocking_input.html?c=true#0>
+--
+--   The equivalent function for checking all kinds of event is 'UI.TCOD.System.waitForEvent'
 waitForKeypress :: Bool -> IO KeyEvent
 waitForKeypress f =
   alloca $ \kep ->
@@ -676,9 +678,13 @@ foreign import ccal unsafe "console.h TCOD_console_check_for_keypress_ptr"
                                      -> Ptr KeyEvent
                                      -> IO ()
 
+-- |
+
 -- | Checks for a keypress. The 'KeyStatus' is the status of key event
 --   that should be checked for. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_non_blocking_input.html?c=true#0>
+--
+--   The equivalent function for checking all kinds of event is 'UI.TCOD.System.checkForEvent'
 checkForKeypress :: KeyStatus -> IO (Maybe KeyEvent)
 checkForKeypress (KeyStatus s) =
   alloca $ \kep -> do
