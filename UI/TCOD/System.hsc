@@ -36,6 +36,7 @@ import UI.TCOD.Console.Types(Renderer(..))
 
 import Foreign
 import Foreign.Ptr
+import Foreign.Marshal.Alloc
 import Foreign.C.Types
 import Foreign.C.String
 
@@ -194,4 +195,8 @@ foreign import ccall unsafe "sys.h TCOD_sys_clipboard_get"
 -- | Get the current contents of the OS clipboard. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/system_clipboard.html?c=true#1>
 getClipboard :: IO String
-getClipboard = tcod_clipboard_get >>= peekCString
+getClipboard = do
+  p <- tcod_clipboard_get
+  s <- peekCString p
+  free p
+  return s
