@@ -50,6 +50,17 @@ module UI.TCOD.Console
        , putChar_
        , putCharEx
 
+       -- * String drawing functions
+       , setBackgroundFlag
+       , getBackgroundFlag
+       , setAlignment
+       , getAlignment
+       , printString
+       , printStringEx
+       , pringStringRect
+       , printStringRectEx
+       , computeHeightRect
+
        -- * Advanced drawing functions
        , rect
        , hLine
@@ -437,6 +448,69 @@ putCharEx con (x, y) char for bak =
           x' = conv x
           y' = conv y
           char' = conv (ord char)
+
+foreign import ccall unsafe "console.h TCOD_console_set_background_flag"
+  tcod_console_set_background_flag :: Ptr ()
+                                      -> CInt
+                                      -> IO ()
+
+-- | Sets the default background flag for a console. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_print.html?c=true#0>
+setBackgroundFlag :: Console -> BackgroundFlag -> IO ()
+setBackgroundFlag con (BackgroundFlag bf) =
+  withConsolePtr con (flip tcod_console_set_background_flag bf)
+
+foreign import ccall unsafe "console.h TCOD_console_get_background_flag"
+  tcod_console_get_background_flag :: Ptr ()
+                                      -> IO CInt
+
+-- | Returns the default background flag of a console. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_print.html?c=true#1>
+getBackgroundFlag :: Console -> IO BackgroundFlag
+getBackgroundFlag  con =
+  BackgroundFlag `fmap`
+  (withConsolePtr con tcod_console_get_background_flag)
+
+foreign import ccall unsafe "console.h TCOD_console_set_alignment"
+  tcod_console_set_alignment :: Ptr ()
+                                -> CInt
+                                -> IO ()
+
+-- | Sets the default alignment of a console. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_print.html?c=true#2>
+setAlignment :: Console -> Alignment -> IO ()
+setAlignment con (Alignment al) =
+  withConsolePtr con (flip tcod_console_set_alignment al)
+
+foreign import ccall unsafe "console.h TCOD_console_get_alignment"
+  tcod_console_get_alignment :: Ptr ()
+                                -> IO CInt
+
+-- | Returns the default alignment of a console. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_print.html?c=true#3>
+getAlignment :: Console -> IO Alignment
+getAlignment  con =
+  Alignment `fmap`
+  (withConsolePtr con tcod_console_get_alignment)
+
+foreign import ccall unsafe "console.h TCOD_console_print"
+  tcod_console_print :: Ptr ()
+                        -> CInt
+                        -> CInt
+                        -> CString
+                        -> IO ()
+
+-- | Prints a string at the given position using the console alignment
+--   and background flag. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_print.html?c=true#4>
+printString :: Console -> (Int, Int) -> String -> IO ()
+printString con (x, y) str =
+  withConsolePtr con $ \conp ->
+  withCAString str $ \strp ->
+  tcod_console_print conp x' y' strp
+  where conv = CInt . fromIntegral
+        x' = conv x
+        y' = conv y
 
 foreign import ccall "console.h TCOD_console_rect"
   tcod_console_rect :: Ptr ()
