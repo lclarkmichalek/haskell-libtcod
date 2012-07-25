@@ -57,7 +57,7 @@ module UI.TCOD.Console
        , getAlignment
        , printString
        , printStringEx
-       , pringStringRect
+       , printStringRect
        , printStringRectEx
        , computeHeightRect
 
@@ -511,6 +511,103 @@ printString con (x, y) str =
   where conv = CInt . fromIntegral
         x' = conv x
         y' = conv y
+
+foreign import ccall unsafe "console.h TCOD_console_print_ex"
+  tcod_console_print_ex :: Ptr ()
+                           -> CInt
+                           -> CInt
+                           -> CInt
+                           -> CInt
+                           -> CString
+                           -> IO ()
+
+-- | Prints a string at the given position using specific alignment
+--   and background flag. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_print.html?c=true#5>
+printStringEx :: Console -> (Int, Int) ->
+                 BackgroundFlag -> Alignment -> String -> IO ()
+printStringEx con (x, y) (BackgroundFlag bf) (Alignment a) str =
+  withCAString str $ \strp ->
+  withConsolePtr con $ \conp ->
+  tcod_console_print_ex conp x' y' bf a strp
+  where conv = CInt . fromIntegral
+        x' = conv x
+        y' = conv y
+
+foreign import ccall unsafe "console.h TCOD_console_print_rect"
+  tcod_console_print_rect :: Ptr ()
+                             -> CInt
+                             -> CInt
+                             -> CInt
+                             -> CInt
+                             -> CString
+                             -> IO ()
+
+-- | Prints a string at the given position inside a rectangle of the
+--   given width and height. If the string is longer than the width,
+--   carriage returns will be inserted. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_print.html?c=true#6>
+printStringRect :: Console -> (Int, Int) -> (Int, Int) -> String -> IO ()
+printStringRect con (x, y) (w, h) str =
+  withConsolePtr con $ \conp ->
+  withCAString str $ \strp ->
+  tcod_console_print_rect conp x' y' w' h' strp
+  where conv = CInt . fromIntegral
+        x' = conv x
+        y' = conv y
+        w' = conv w
+        h' = conv h
+
+foreign import ccall unsafe "console.h TCOD_console_print_rect_ex"
+  tcod_console_print_rect_ex :: Ptr ()
+                                -> CInt
+                                -> CInt
+                                -> CInt
+                                -> CInt
+                                -> CInt
+                                -> CInt
+                                -> CString
+                                -> IO ()
+
+-- | Prints a string at the given position inside a rectangle of the
+--   given width and height using specific background flag and
+--   alignment . If the string is longer than the width,
+--   carriage returns will be inserted. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_print.html?c=true#7>
+printStringRectEx :: Console -> (Int, Int) -> (Int, Int) ->
+                     BackgroundFlag -> Alignment -> String -> IO ()
+printStringRectEx con (x, y) (w, h) (BackgroundFlag bf) (Alignment a) str =
+  withCAString str $ \strp ->
+  withConsolePtr con $ \conp ->
+  tcod_console_print_rect_ex conp x' y' w' h' bf a strp
+  where c = CInt . fromIntegral
+        x' = c x
+        y' = c y
+        w' = c w
+        h' = c h
+
+foreign import ccall unsafe "console.h TCOD_console_get_height_rect"
+  tcod_console_get_height_rect :: CInt
+                                  -> CInt
+                                  -> CInt
+                                  -> CInt
+                                  -> CString
+                                  -> IO CInt
+
+-- | Computes the height of the wrapped string without calling
+--   'printStringRect'. Wraps
+--   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_print.html?c=true#8>
+computeHeightRect :: (Int, Int) -> (Int, Int) -> String -> Int
+computeHeightRect (x, y) (w, h) str =
+  fromIntegral $
+  unsafeLocalState $
+  withCAString str $ \strp ->
+  tcod_console_get_height_rect x' y' w' h' strp
+  where c = CInt . fromIntegral
+        x' = c x
+        y' = c y
+        w' = c w
+        h' = c h
 
 foreign import ccall "console.h TCOD_console_rect"
   tcod_console_rect :: Ptr ()
