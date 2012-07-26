@@ -20,6 +20,7 @@ library
     UI.TCOD.Color
     UI.TCOD.Console
     UI.TCOD.System
+    UI.TCOD.Line
   other-modules:
     UI.TCOD.Console.Types
   C-sources:
