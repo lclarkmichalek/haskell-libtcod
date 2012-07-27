@@ -21,6 +21,7 @@ library
     UI.TCOD.Console
     UI.TCOD.System
     UI.TCOD.Line
+    UI.TCOD.Image
   other-modules:
     UI.TCOD.Console.Types
   C-sources:
