@@ -1,4 +1,4 @@
-#include "color.h"
+#include "ccolor.h"
 
 void TCOD_color_RGB_ptr(uint8 r, uint8 g, uint8 b, TCOD_color_t* out) {
     *out = TCOD_color_RGB(r, g, b);

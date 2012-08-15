@@ -1,4 +1,4 @@
-#include "image.h"
+#include "ccimage.h"
 
 void TCOD_image_get_pixel_ptr(TCOD_image_t img, int x, int y, TCOD_color_t* col) {
     *col = TCOD_image_get_pixel(img, x, y);

@@ -1,4 +1,4 @@
-#include "console.h"
+#include "cconsole.h"
 
 void TCOD_console_delete_ptr(TCOD_console_t* c) {
     TCOD_console_delete(*c);

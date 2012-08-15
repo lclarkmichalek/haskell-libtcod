@@ -34,7 +34,7 @@ import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String
 
-#include "color.h"
+#include "ccolor.h"
 
 {-| An opaque wrapper around the libtcod Color type.
 -}
@@ -62,7 +62,7 @@ wrapPtr f = unsafeLocalState $ alloca $ \ptr -> do
   peek ptr
 
 -- TCOD_color_t TCOD_color_RGB(uint8 r, uint8 g, uint8 b);
-foreign import ccall unsafe "color.h TCOD_color_RGB_ptr"
+foreign import ccall unsafe "ccolor.h TCOD_color_RGB_ptr"
   tcod_color_RGB :: Word8
                     -> Word8
                     -> Word8
@@ -74,7 +74,7 @@ foreign import ccall unsafe "color.h TCOD_color_RGB_ptr"
 colorRGB :: Int8 -> Int8 -> Int8 -> Color
 colorRGB r g b = wrapPtr $ (tcod_color_RGB `mp3` fromIntegral) r g b
 
-foreign import ccall unsafe "color.h TCOD_color_HSV_ptr"
+foreign import ccall unsafe "ccolor.h TCOD_color_HSV_ptr"
   tcod_color_HSV :: CFloat
                     -> CFloat
                     -> CFloat
@@ -86,7 +86,7 @@ foreign import ccall unsafe "color.h TCOD_color_HSV_ptr"
 colorHSV :: Float -> Float -> Float -> Color
 colorHSV h s v = wrapPtr $ (tcod_color_HSV `mp3` CFloat) h s v
 
-foreign import ccall unsafe "color.h TCOD_color_equals_ptr"
+foreign import ccall unsafe "ccolor.h TCOD_color_equals_ptr"
   tcod_color_equals :: Ptr Color
                        -> Ptr Color
                        -> Bool
@@ -99,7 +99,7 @@ instance Eq Color where
                  poke p2 c2
                  return $ tcod_color_equals p1 p2
 
-foreign import ccall unsafe "color.h TCOD_color_add_ptr"
+foreign import ccall unsafe "ccolor.h TCOD_color_add_ptr"
   tcod_color_add :: Ptr Color
                     -> Ptr Color
                     -> Ptr Color
@@ -117,7 +117,7 @@ add c1 c2 = unsafeLocalState $
               tcod_color_add p1 p2 res
               peek res
 
-foreign import ccall unsafe "color.h TCOD_color_subtract_ptr"
+foreign import ccall unsafe "ccolor.h TCOD_color_subtract_ptr"
   tcod_color_subtract :: Ptr Color
                          -> Ptr Color
                          -> Ptr Color
@@ -135,7 +135,7 @@ sub c1 c2 = unsafeLocalState $
               tcod_color_subtract p1 p2 res
               peek res
 
-foreign import ccall unsafe "color.h TCOD_color_multiply_ptr"
+foreign import ccall unsafe "ccolor.h TCOD_color_multiply_ptr"
   tcod_color_multiply :: Ptr Color
                          -> Ptr Color
                          -> Ptr Color
@@ -153,7 +153,7 @@ mul c1 c2 = unsafeLocalState $
               tcod_color_multiply p1 p2 res
               peek res
 
-foreign import ccall unsafe "color.h TCOD_color_multiply_scalar_ptr"
+foreign import ccall unsafe "ccolor.h TCOD_color_multiply_scalar_ptr"
   tcod_color_multiply_scalar :: Ptr Color
                                 -> CFloat
                                 -> Ptr Color
@@ -169,7 +169,7 @@ mul_s c1 f = unsafeLocalState $
                tcod_color_multiply_scalar p1 (CFloat f) res
                peek res
 
-foreign import ccall unsafe "color.h TCOD_color_lerp_ptr"
+foreign import ccall unsafe "ccolor.h TCOD_color_lerp_ptr"
   tcod_color_lerp :: Ptr Color
                      -> Ptr Color
                      -> CFloat
@@ -193,7 +193,7 @@ lerp c1 c2 l = unsafeLocalState $
 getRGB :: Color -> (Int8, Int8, Int8)
 getRGB (Color r g b) = (fromIntegral r, fromIntegral g, fromIntegral b)
 
-foreign import ccall unsafe "color.h TCOD_color_get_HSV_ptr"
+foreign import ccall unsafe "ccolor.h TCOD_color_get_HSV_ptr"
   tcod_color_get_hsv :: Ptr Color
                         -> Ptr CFloat
                         -> Ptr CFloat
@@ -214,7 +214,7 @@ getHSV c = unsafeLocalState $
              v' <- peek v
              return (realToFrac h', realToFrac s', realToFrac v')
 
-foreign import ccall unsafe "color.h TCOD_color_shift_hue"
+foreign import ccall unsafe "ccolor.h TCOD_color_shift_hue"
   tcod_color_shift_hue :: Ptr Color
                           -> CFloat
                           -> IO ()
@@ -228,7 +228,7 @@ shiftHue c f = unsafeLocalState $
                  tcod_color_shift_hue p (CFloat f)
                  peek p
 
-foreign import ccall unsafe "color.h TCOD_color_scale_HSV"
+foreign import ccall unsafe "ccolor.h TCOD_color_scale_HSV"
   tcod_color_scale_hsv :: Ptr Color
                           -> CFloat
                           -> CFloat
@@ -243,7 +243,7 @@ scaleHSV c f1 f2 = unsafeLocalState $
                      tcod_color_scale_hsv p (CFloat f1) (CFloat f2)
                      peek p
 
-foreign import ccall unsafe "color.h TCOD_color_gen_map"
+foreign import ccall unsafe "ccolor.h TCOD_color_gen_map"
   tcod_color_gen_map :: Ptr Color
                         -> CInt
                         -> Ptr Color
@@ -336,7 +336,7 @@ levelToIndex Darkest = #const TCOD_COLOR_DARKEST
 
 colorLevelsLength = #const TCOD_COLOR_LEVELS
 
-foreign import ccall "color.h &TCOD_colors"
+foreign import ccall "ccolor.h &TCOD_colors"
   tcod_colors :: Ptr Color
 
 {-|

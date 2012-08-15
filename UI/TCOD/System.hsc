@@ -40,7 +40,7 @@ import Foreign.Marshal.Alloc
 import Foreign.C.Types
 import Foreign.C.String
 
-foreign import ccall unsafe "sys.h TCOD_sys_set_fps"
+foreign import ccall unsafe "csys.h TCOD_sys_set_fps"
   tcod_set_fps :: CInt
                   -> IO ()
 
@@ -50,7 +50,7 @@ foreign import ccall unsafe "sys.h TCOD_sys_set_fps"
 setFPS :: Int -> IO ()
 setFPS = tcod_set_fps . CInt . fromIntegral
 
-foreign import ccall unsafe "sys.h TCOD_sys_get_fps"
+foreign import ccall unsafe "csys.h TCOD_sys_get_fps"
   tcod_get_fps :: IO CInt
 
 -- | Returns the number of frames rendered in the last second. Wraps
@@ -58,7 +58,7 @@ foreign import ccall unsafe "sys.h TCOD_sys_get_fps"
 getFPS :: IO Int
 getFPS = fmap fromIntegral tcod_get_fps
 
-foreign import ccall unsafe "sys.h TCOD_sys_get_last_frame_length"
+foreign import ccall unsafe "csys.h TCOD_sys_get_last_frame_length"
   tcod_get_last_frame_length :: IO CFloat
 
 -- | Returns the length in seconds of the last frame. Can be used to
@@ -67,7 +67,7 @@ foreign import ccall unsafe "sys.h TCOD_sys_get_last_frame_length"
 getLastFrameLength :: IO Float
 getLastFrameLength = fmap realToFrac tcod_get_last_frame_length
 
-foreign import ccall unsafe "sys.h TCOD_sys_sleep_milli"
+foreign import ccall unsafe "csys.h TCOD_sys_sleep_milli"
   tcod_sleep_milli :: CUInt
                       -> IO ()
 
@@ -76,7 +76,7 @@ foreign import ccall unsafe "sys.h TCOD_sys_sleep_milli"
 sleepMilli :: Int -> IO ()
 sleepMilli = tcod_sleep_milli . fromIntegral
 
-foreign import ccall unsafe "sys.h TCOD_sys_elapsed_milli"
+foreign import ccall unsafe "csys.h TCOD_sys_elapsed_milli"
   tcod_elapsed_milli :: IO CUInt
 
 -- | The number of milliseconds since the program started. Wraps
@@ -84,7 +84,7 @@ foreign import ccall unsafe "sys.h TCOD_sys_elapsed_milli"
 elapsedMilli :: IO Int
 elapsedMilli = fmap fromIntegral tcod_elapsed_milli
 
-foreign import ccall unsafe "sys.h TCOD_sys_elapsed_seconds"
+foreign import ccall unsafe "csys.h TCOD_sys_elapsed_seconds"
   tcod_elapsed_seconds :: IO CFloat
 
 -- | The number of seconds since the program has started. Wraps
@@ -92,7 +92,7 @@ foreign import ccall unsafe "sys.h TCOD_sys_elapsed_seconds"
 elapsedSeconds :: IO Float
 elapsedSeconds = fmap realToFrac tcod_elapsed_seconds
 
-foreign import ccall unsafe "sys.h TCOD_sys_save_screenshot"
+foreign import ccall unsafe "csys.h TCOD_sys_save_screenshot"
   tcod_save_screenshot :: CString
                           -> IO ()
 
@@ -106,7 +106,7 @@ saveScreenshot s = newCAString s >>= tcod_save_screenshot
 -- implements it. Also not implementing SDL rendering, as that would
 -- require importing SDL and shizzle
 
-foreign import ccall unsafe "sys.h TCOD_sys_force_fullscreen_resolution"
+foreign import ccall unsafe "csys.h TCOD_sys_force_fullscreen_resolution"
   tcod_force_fullscreen_resolution :: CInt
                                       -> CInt
                                       -> IO ()
@@ -127,7 +127,7 @@ twoPtrInputs f c =
     v2 <- peek p2
     return (c v1, c v2)
 
-foreign import ccall unsafe "sys.h TCOD_sys_get_current_resolution"
+foreign import ccall unsafe "csys.h TCOD_sys_get_current_resolution"
   tcod_get_current_resolution :: Ptr CInt
                                  -> Ptr CInt
                                  -> IO ()
@@ -137,7 +137,7 @@ foreign import ccall unsafe "sys.h TCOD_sys_get_current_resolution"
 getCurrentResolution :: IO (Int, Int)
 getCurrentResolution = twoPtrInputs tcod_get_current_resolution fromIntegral
 
-foreign import ccall unsafe "sys.h TCOD_sys_get_fullscreen_offsets"
+foreign import ccall unsafe "csys.h TCOD_sys_get_fullscreen_offsets"
   tcod_get_fullscreen_offsets :: Ptr CInt
                                  -> Ptr CInt
                                  -> IO ()
@@ -150,7 +150,7 @@ foreign import ccall unsafe "sys.h TCOD_sys_get_fullscreen_offsets"
 getFullscreenOffsets :: IO (Int, Int)
 getFullscreenOffsets = twoPtrInputs tcod_get_fullscreen_offsets fromIntegral
 
-foreign import ccall unsafe "sys.h TCOD_sys_get_char_size"
+foreign import ccall unsafe "csys.h TCOD_sys_get_char_size"
   tcod_get_char_size :: Ptr CInt
                         -> Ptr CInt
                         -> IO ()
@@ -163,7 +163,7 @@ getCharSize = twoPtrInputs tcod_get_char_size fromIntegral
 -- TODO: updateChar will be implemented when the image subsystem is
               -- implemented
 
-foreign import ccall unsafe "sys.h TCOD_sys_set_renderer"
+foreign import ccall unsafe "csys.h TCOD_sys_set_renderer"
   tcod_set_renderer :: CInt -> IO ()
 
 -- | Sets the internal renderer that libtcod uses. Wraps
@@ -171,7 +171,7 @@ foreign import ccall unsafe "sys.h TCOD_sys_set_renderer"
 setRenderer :: Renderer -> IO ()
 setRenderer (Renderer r) = tcod_set_renderer r
 
-foreign import ccall unsafe "sys.h TCOD_sys_get_renderer"
+foreign import ccall unsafe "csys.h TCOD_sys_get_renderer"
   tcod_get_renderer :: IO CInt
 
 -- | Returns the internal renderer that libtcod is using. Wraps
@@ -179,7 +179,7 @@ foreign import ccall unsafe "sys.h TCOD_sys_get_renderer"
 getRenderer :: IO Renderer
 getRenderer = Renderer `fmap` tcod_get_renderer
 
-foreign import ccall unsafe "sys.h TCOD_sys_clipboard_set"
+foreign import ccall unsafe "csys.h TCOD_sys_clipboard_set"
   tcod_clipboard_set :: CString
                         -> IO ()
 
@@ -188,7 +188,7 @@ foreign import ccall unsafe "sys.h TCOD_sys_clipboard_set"
 setClipboard :: String -> IO ()
 setClipboard s = newCAString s >>= tcod_clipboard_set
 
-foreign import ccall unsafe "sys.h TCOD_sys_clipboard_get"
+foreign import ccall unsafe "csys.h TCOD_sys_clipboard_get"
   tcod_clipboard_get :: IO CString
 
 -- TODO: Free the CString

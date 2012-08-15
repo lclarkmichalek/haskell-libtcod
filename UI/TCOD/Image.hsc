@@ -11,6 +11,22 @@ module UI.TCOD.Image
        , getPixel
        , getAlpha
        , isTransparent
+       , getMipMap
+
+       , clearImage
+       , putPixel
+       , scaleImage
+       , hflipImage
+       , vflipImage
+       , rotateImage90
+       , invertImage
+
+       , saveImage
+
+       , blitImageRect
+       , blitImage
+       , blitImage2x
+       , setKeyColor
        ) where
 
 import UI.TCOD.Console (ConsoleStruct(..), Console(..))
@@ -28,7 +44,7 @@ import Foreign.ForeignPtr.Safe
 data ImageStruct = ImageStruct
 data Image = Image (ForeignPtr ImageStruct)
 
-foreign import ccall unsafe "image.h &TCOD_image_delete"
+foreign import ccall unsafe "cimage.h &TCOD_image_delete"
   image_delete :: FunPtr (Ptr ImageStruct -> IO ())
 
 makeImage :: Ptr ImageStruct -> IO Image
@@ -37,7 +53,7 @@ makeImage imgp = fmap Image $ newForeignPtr image_delete imgp
 ci = CInt . fromIntegral
 cf = CFloat
 
-foreign import ccall unsafe "image.h TCOD_image_new"
+foreign import ccall unsafe "cimage.h TCOD_image_new"
   new_image :: CInt ->
                CInt ->
                IO (Ptr ImageStruct)
@@ -47,7 +63,7 @@ newImage w h = new_image w' h' >>= makeImage
   where w' = ci w
         h' = ci h
 
-foreign import ccall unsafe "image.h TCOD_image_load"
+foreign import ccall unsafe "cimage.h TCOD_image_load"
   load_image :: CString -> IO (Ptr ImageStruct)
 
 imageFromFile :: String -> IO (Maybe Image)
@@ -58,7 +74,7 @@ imageFromFile name =
       then return Nothing
       else Just `fmap` makeImage imgp
 
-foreign import ccall unsafe "image.h TCOD_image_from_console"
+foreign import ccall unsafe "cimage.h TCOD_image_from_console"
   image_from_console :: Ptr ConsoleStruct ->
                         IO (Ptr ImageStruct)
 
@@ -67,7 +83,7 @@ imageFromConsole (Console con) =
   withForeignPtr con $ \conp ->
   image_from_console conp >>= makeImage
 
-foreign import ccall unsafe "image.h TCOD_image_get_size"
+foreign import ccall unsafe "cimage.h TCOD_image_get_size"
   image_get_size :: Ptr ImageStruct ->
                     Ptr CInt ->
                     Ptr CInt ->
@@ -83,7 +99,7 @@ getSize (Image fp) =
     y <- peek yp
     return (fromIntegral x, fromIntegral y)
 
-foreign import ccall unsafe "image.h TCOD_image_get_pixel_ptr"
+foreign import ccall unsafe "cimage.h TCOD_image_get_pixel_ptr"
   image_get_pixel :: Ptr ImageStruct ->
                      CInt -> CInt ->
                      Ptr Color ->
@@ -98,7 +114,7 @@ getPixel (Image fp) (x, y) =
   where x' = ci x
         y' = ci y
 
-foreign import ccall unsafe "image.h TCOD_image_get_alpha"
+foreign import ccall unsafe "cimage.h TCOD_image_get_alpha"
   image_get_alpha :: Ptr ImageStruct ->
                      CInt -> CInt ->
                      IO CInt
@@ -114,7 +130,7 @@ getAlpha (Image fp) (x, y) =
 isTransparent :: Image -> (Int, Int) -> IO Bool
 isTransparent img coord = fmap (== 0) $ (getAlpha img coord)
 
-foreign import ccall unsafe "image.h TCOD_image_get_mipmap_pixel_ptr"
+foreign import ccall unsafe "cimage.h TCOD_image_get_mipmap_pixel_ptr"
   image_get_mipmap :: Ptr ImageStruct ->
                       CFloat -> CFloat ->
                       CFloat -> CFloat ->
@@ -132,7 +148,7 @@ getMipMap (Image fp) (x0, y0) (x1, y1) =
         x1' = cf x1
         y1' = cf y1
 
-foreign import ccall unsafe "image.h TCOD_image_clear_ptr"
+foreign import ccall unsafe "cimage.h TCOD_image_clear_ptr"
   image_clear :: Ptr ImageStruct ->
                  Ptr Color ->
                  IO ()
@@ -144,7 +160,7 @@ clearImage (Image fp) col =
   poke colp col >>
   image_clear imgp colp
 
-foreign import ccall unsafe "image.h TCOD_image_put_pixel_ptr"
+foreign import ccall unsafe "cimage.h TCOD_image_put_pixel_ptr"
   image_put_pixel :: Ptr ImageStruct ->
                      CInt -> CInt ->
                      Ptr Color ->
@@ -159,7 +175,7 @@ putPixel (Image fp) (x, y) col =
   where x' = ci x
         y' = ci y
 
-foreign import ccall unsafe "image.h TCOD_image_scale"
+foreign import ccall unsafe "cimage.h TCOD_image_scale"
   image_scale :: Ptr ImageStruct ->
                  CInt -> CInt ->
                  IO ()
@@ -169,19 +185,19 @@ scaleImage (Image fp) (x, y) =
   withForeignPtr fp $ \imgp ->
   image_scale imgp (ci x) (ci y)
 
-foreign import ccall unsafe "image.h TCOD_image_hflip"
+foreign import ccall unsafe "cimage.h TCOD_image_hflip"
   image_hflip :: Ptr ImageStruct -> IO ()
 
 hflipImage :: Image -> IO ()
 hflipImage (Image fp) = withForeignPtr fp image_hflip
 
-foreign import ccall unsafe "image.h TCOD_image_vflip"
+foreign import ccall unsafe "cimage.h TCOD_image_vflip"
   image_vflip :: Ptr ImageStruct -> IO ()
 
 vflipImage :: Image -> IO ()
 vflipImage (Image fp) = withForeignPtr fp image_vflip
 
-foreign import ccall unsafe "image.h TCOD_image_rotate90"
+foreign import ccall unsafe "cimage.h TCOD_image_rotate90"
   image_rotate :: Ptr ImageStruct -> CInt -> IO ()
 
 rotateImage90 :: Image -> Int -> IO ()
@@ -192,13 +208,13 @@ rotateImage90 img n
           withForeignPtr fp $ \imgp ->
           image_rotate imgp (ci n')
 
-foreign import ccall unsafe "image.h TCOD_image_invert"
+foreign import ccall unsafe "cimage.h TCOD_image_invert"
   image_invert :: Ptr ImageStruct -> IO ()
 
 invertImage :: Image -> IO ()
 invertImage (Image fp) = withForeignPtr fp image_invert
 
-foreign import ccall unsafe "image.h TCOD_image_save"
+foreign import ccall unsafe "cimage.h TCOD_image_save"
   image_save :: Ptr ImageStruct -> CString -> IO ()
 
 saveImage :: Image -> String -> IO ()
@@ -207,7 +223,7 @@ saveImage (Image fp) str =
   withForeignPtr fp $ \imgp ->
   image_save imgp cstr
 
-foreign import ccall unsafe "image.h TCOD_image_blit_rect"
+foreign import ccall unsafe "cimage.h TCOD_image_blit_rect"
   blit_rect :: Ptr ImageStruct ->
                Ptr ConsoleStruct ->
                CInt -> CInt ->
@@ -227,7 +243,7 @@ blitImageRect (Image ifp) (Console cfp) (x, y) (w, h) (BackgroundFlag bf) =
         w' = ci w
         h' = ci h
 
-foreign import ccall unsafe "image.h TCOD_image_blit"
+foreign import ccall unsafe "cimage.h TCOD_image_blit"
   blit :: Ptr ImageStruct ->
           Ptr ConsoleStruct ->
           CInt -> CInt ->
@@ -247,7 +263,7 @@ blitImage (Image ifp) (Console cfp) (x, y) (BackgroundFlag bf) (sx, sy) a =
         sy' = cf sy
         a' = cf a
 
-foreign import ccall unsafe "image.h TCOD_image_set_key_color_ptr"
+foreign import ccall unsafe "cimage.h TCOD_image_set_key_color_ptr"
   set_key_color :: Ptr ImageStruct -> Ptr Color -> IO ()
 
 setKeyColor :: Image -> Color -> IO ()
@@ -257,7 +273,7 @@ setKeyColor (Image fp) c =
   poke colp c >>
   set_key_color imgp colp
 
-foreign import ccall unsafe "image.h TCOD_image_blit_2x"
+foreign import ccall unsafe "cimage.h TCOD_image_blit_2x"
   blit_2x :: Ptr ImageStruct ->
              Ptr ConsoleStruct ->
              CInt -> CInt ->

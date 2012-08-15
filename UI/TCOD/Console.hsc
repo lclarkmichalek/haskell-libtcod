@@ -115,7 +115,7 @@ import Data.Char (ord, chr)
 import UI.TCOD.Color(Color(..))
 import UI.TCOD.Console.Types
 
-#include "console.h"
+#include "cconsole.h"
 
 data ConsoleStruct = ConsoleStruct
 
@@ -129,7 +129,7 @@ withConsolePtr (Console forp) f = withForeignPtr forp f
 rootConsole :: IO Console
 rootConsole = Console `fmap` (newForeignPtr_ nullPtr)
 
-foreign import ccall "console.h &TCOD_console_delete_ptr"
+foreign import ccall "cconsole.h &TCOD_console_delete_ptr"
   tcod_console_delete :: FunPtr (Ptr ConsoleStruct -> IO ())
 
 --Creates a finalised console from a raw console pointer
@@ -143,7 +143,7 @@ createConsole rawC = do
 deleteConsole :: Console -> IO ()
 deleteConsole (Console forp) = finalizeForeignPtr forp
 
-foreign import ccall "console.h TCOD_console_init_root"
+foreign import ccall "cconsole.h TCOD_console_init_root"
   tcod_console_init_root :: CInt
                          -> CInt
                          -> CString
@@ -178,7 +178,7 @@ initConsole width height windowName config = do
   tcod_console_init_root width' height' windowName' fullscreen renderer
   rootConsole
 
-foreign import ccall "console.h TCOD_console_set_custom_font"
+foreign import ccall "cconsole.h TCOD_console_set_custom_font"
   tcod_console_set_custom_font :: CString
                                   -> FontFlag
                                   -> CInt
@@ -211,7 +211,7 @@ setCustomFont filename config = do
       ncVt = fromIntegral $ fontCharsVertical config
   tcod_console_set_custom_font filename' flags ncHz ncVt
 
-foreign import ccall "console.h TCOD_console_map_ascii_code_to_font"
+foreign import ccall "cconsole.h TCOD_console_map_ascii_code_to_font"
   tcod_console_map_ascii_font :: CInt
                                  -> CInt
                                  -> CInt
@@ -225,7 +225,7 @@ mapASCIICodeToFont c x y =
   tcod_console_map_ascii_font (fromIntegral (ord c))
   (fromIntegral x) (fromIntegral y)
 
-foreign import ccall "console.h TCOD_console_map_ascii_codes_to_font"
+foreign import ccall "cconsole.h TCOD_console_map_ascii_codes_to_font"
   tcod_console_map_ascii_fonts :: CInt
                                   -> CInt
                                   -> CInt
@@ -241,7 +241,7 @@ mapASCIICodesToFont c n x y =
   tcod_console_map_ascii_fonts (fromIntegral (ord c)) (fromIntegral n)
   (fromIntegral x) (fromIntegral y)
 
-foreign import ccall "console.h TCOD_console_map_string_to_font"
+foreign import ccall "cconsole.h TCOD_console_map_string_to_font"
   tcod_console_map_string_font :: CString
                                   -> CInt
                                   -> CInt
@@ -256,21 +256,21 @@ mapStringToFont s x y= do
   s' <- newCAString s
   tcod_console_map_string_font s' (fromIntegral x) (fromIntegral y)
 
-foreign import ccall "console.h TCOD_console_is_fullscreen"
+foreign import ccall "cconsole.h TCOD_console_is_fullscreen"
   tcod_console_is_fullscreen :: IO Bool
 
 -- | Tests if the root console is fullscreened or not. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_fullscreen.html?c=true#0>
 isFullscreen = tcod_console_is_fullscreen
 
-foreign import ccall "console.h TCOD_console_set_fullscreen"
+foreign import ccall "cconsole.h TCOD_console_set_fullscreen"
   tcod_console_set_fullscreen :: Bool -> IO()
 
 -- | Sets the console to be fullscreen or not. Wraps
 --   <http://doryen.eptalys.net/data/libtcod/doc/1.5.1/html2/console_fullscreen.html?c=true#1>
 setFullscreen = tcod_console_set_fullscreen
 
-foreign import ccall "console.h TCOD_console_set_window_title"
+foreign import ccall "cconsole.h TCOD_console_set_window_title"
   tcod_console_set_window_title :: CString  -> IO()
 
 -- | Sets the root window title. Wraps
@@ -278,7 +278,7 @@ foreign import ccall "console.h TCOD_console_set_window_title"
 setWindowTitle :: String -> IO ()
 setWindowTitle s = (newCAString s) >>= tcod_console_set_window_title
 
-foreign import ccall "console.h TCOD_console_is_window_closed"
+foreign import ccall "cconsole.h TCOD_console_is_window_closed"
   tcod_console_is_window_closed :: IO Bool
 
 -- | Returns true if the window is closed. The program should then exit
@@ -287,7 +287,7 @@ foreign import ccall "console.h TCOD_console_is_window_closed"
 isWindowClosed :: IO Bool
 isWindowClosed = tcod_console_is_window_closed
 
-foreign import ccall "console.h TCOD_console_credits"
+foreign import ccall "cconsole.h TCOD_console_credits"
   tcod_console_credits :: IO ()
 
 -- | Prints out the tcod credits onto the root console. Wraps
@@ -295,7 +295,7 @@ foreign import ccall "console.h TCOD_console_credits"
 credits :: IO ()
 credits = tcod_console_credits
 
-foreign import ccall "console.h TCOD_console_credits_render"
+foreign import ccall "cconsole.h TCOD_console_credits_render"
   tcod_console_credits_render :: CInt
                                  -> CInt
                                  -> Bool
@@ -309,7 +309,7 @@ creditsRender :: (Int, Int) -> Bool -> IO Bool
 creditsRender (x, y) a = tcod_console_credits_render
                       (fromIntegral x) (fromIntegral y) a
 
-foreign import ccall "console.h TCOD_console_credits_reset"
+foreign import ccall "cconsole.h TCOD_console_credits_reset"
   tcod_console_credits_reset :: IO ()
 
 -- | Resets the credits that have been started by 'creditsRender'. Wraps
@@ -317,7 +317,7 @@ foreign import ccall "console.h TCOD_console_credits_reset"
 creditsReset :: IO()
 creditsReset = tcod_console_credits_reset
 
-foreign import ccall "console.h TCOD_console_set_default_background_ptr"
+foreign import ccall "cconsole.h TCOD_console_set_default_background_ptr"
   tcod_console_set_default_background :: Ptr ConsoleStruct
                                          -> Ptr Color
                                          -> IO ()
@@ -331,7 +331,7 @@ setDefaultBackground con col =
     poke colp col
     tcod_console_set_default_background conp colp
 
-foreign import ccall "console.h TCOD_console_set_default_foreground_ptr"
+foreign import ccall "cconsole.h TCOD_console_set_default_foreground_ptr"
   tcod_console_set_default_foreground :: Ptr ConsoleStruct
                                          -> Ptr Color
                                          -> IO ()
@@ -345,7 +345,7 @@ setDefaultForeground con col =
     poke colp col
     tcod_console_set_default_foreground conp colp
 
-foreign import ccall "console.h TCOD_console_clear"
+foreign import ccall "cconsole.h TCOD_console_clear"
   tcod_console_clear :: Ptr ConsoleStruct
                         -> IO ()
 
@@ -355,7 +355,7 @@ clear :: Console -> IO ()
 clear con = withConsolePtr con $ \conp -> do
   tcod_console_clear conp
 
-foreign import ccall "console.h TCOD_console_set_char_background_ptr"
+foreign import ccall "cconsole.h TCOD_console_set_char_background_ptr"
   tcod_console_set_char_back :: Ptr ConsoleStruct
                                 -> CInt
                                 -> CInt
@@ -375,7 +375,7 @@ setCharBackground con (x, y) col bf =
             x' = CInt (fromIntegral x)
             y' = CInt (fromIntegral y)
 
-foreign import ccall "console.h TCOD_console_set_char_foreground_ptr"
+foreign import ccall "cconsole.h TCOD_console_set_char_foreground_ptr"
   tcod_console_set_char_fore :: Ptr ConsoleStruct
                                 -> CInt
                                 -> CInt
@@ -393,7 +393,7 @@ setCharForeground con (x, y) col =
       where x' = CInt (fromIntegral x)
             y' = CInt (fromIntegral y)
 
-foreign import ccall "console.h TCOD_console_set_char"
+foreign import ccall "cconsole.h TCOD_console_set_char"
   tcod_console_set_char :: Ptr ConsoleStruct
                            -> CInt
                            -> CInt
@@ -410,7 +410,7 @@ setChar con (x, y) char = withConsolePtr con $ \conp -> do
           y' = conv y
           char' = conv (ord char)
 
-foreign import ccall "console.h TCOD_console_put_char"
+foreign import ccall "cconsole.h TCOD_console_put_char"
   tcod_console_put_char :: Ptr ConsoleStruct
                            -> CInt
                            -> CInt
@@ -429,7 +429,7 @@ putChar_ con (x, y) char (BackgroundFlag bf) = withConsolePtr con $ \conp -> do
         y' = conv y
         char' = conv (ord char)
 
-foreign import ccall "console.h TCOD_console_put_char_ex_ptr"
+foreign import ccall "cconsole.h TCOD_console_put_char_ex_ptr"
   tcod_console_put_char_ex :: Ptr ConsoleStruct
                               -> CInt
                               -> CInt
@@ -453,7 +453,7 @@ putCharEx con (x, y) char for bak =
           y' = conv y
           char' = conv (ord char)
 
-foreign import ccall unsafe "console.h TCOD_console_set_background_flag"
+foreign import ccall unsafe "cconsole.h TCOD_console_set_background_flag"
   tcod_console_set_background_flag :: Ptr ConsoleStruct
                                       -> CInt
                                       -> IO ()
@@ -464,7 +464,7 @@ setBackgroundFlag :: Console -> BackgroundFlag -> IO ()
 setBackgroundFlag con (BackgroundFlag bf) =
   withConsolePtr con (flip tcod_console_set_background_flag bf)
 
-foreign import ccall unsafe "console.h TCOD_console_get_background_flag"
+foreign import ccall unsafe "cconsole.h TCOD_console_get_background_flag"
   tcod_console_get_background_flag :: Ptr ConsoleStruct
                                       -> IO CInt
 
@@ -475,7 +475,7 @@ getBackgroundFlag  con =
   BackgroundFlag `fmap`
   (withConsolePtr con tcod_console_get_background_flag)
 
-foreign import ccall unsafe "console.h TCOD_console_set_alignment"
+foreign import ccall unsafe "cconsole.h TCOD_console_set_alignment"
   tcod_console_set_alignment :: Ptr ConsoleStruct
                                 -> CInt
                                 -> IO ()
@@ -486,7 +486,7 @@ setAlignment :: Console -> Alignment -> IO ()
 setAlignment con (Alignment al) =
   withConsolePtr con (flip tcod_console_set_alignment al)
 
-foreign import ccall unsafe "console.h TCOD_console_get_alignment"
+foreign import ccall unsafe "cconsole.h TCOD_console_get_alignment"
   tcod_console_get_alignment :: Ptr ConsoleStruct
                                 -> IO CInt
 
@@ -497,7 +497,7 @@ getAlignment  con =
   Alignment `fmap`
   (withConsolePtr con tcod_console_get_alignment)
 
-foreign import ccall unsafe "console.h TCOD_console_print"
+foreign import ccall unsafe "cconsole.h TCOD_console_print"
   tcod_console_print :: Ptr ConsoleStruct
                         -> CInt
                         -> CInt
@@ -516,7 +516,7 @@ printString con (x, y) str =
         x' = conv x
         y' = conv y
 
-foreign import ccall unsafe "console.h TCOD_console_print_ex"
+foreign import ccall unsafe "cconsole.h TCOD_console_print_ex"
   tcod_console_print_ex :: Ptr ConsoleStruct
                            -> CInt
                            -> CInt
@@ -538,7 +538,7 @@ printStringEx con (x, y) (BackgroundFlag bf) (Alignment a) str =
         x' = conv x
         y' = conv y
 
-foreign import ccall unsafe "console.h TCOD_console_print_rect"
+foreign import ccall unsafe "cconsole.h TCOD_console_print_rect"
   tcod_console_print_rect :: Ptr ConsoleStruct
                              -> CInt
                              -> CInt
@@ -562,7 +562,7 @@ printStringRect con (x, y) (w, h) str =
         w' = conv w
         h' = conv h
 
-foreign import ccall unsafe "console.h TCOD_console_print_rect_ex"
+foreign import ccall unsafe "cconsole.h TCOD_console_print_rect_ex"
   tcod_console_print_rect_ex :: Ptr ConsoleStruct
                                 -> CInt
                                 -> CInt
@@ -590,7 +590,7 @@ printStringRectEx con (x, y) (w, h) (BackgroundFlag bf) (Alignment a) str =
         w' = c w
         h' = c h
 
-foreign import ccall unsafe "console.h TCOD_console_get_height_rect"
+foreign import ccall unsafe "cconsole.h TCOD_console_get_height_rect"
   tcod_console_get_height_rect :: CInt
                                   -> CInt
                                   -> CInt
@@ -613,7 +613,7 @@ computeHeightRect (x, y) (w, h) str =
         w' = c w
         h' = c h
 
-foreign import ccall "console.h TCOD_console_rect"
+foreign import ccall "cconsole.h TCOD_console_rect"
   tcod_console_rect :: Ptr ConsoleStruct
                        -> CInt
                        -> CInt
@@ -634,7 +634,7 @@ rect con (x, y) (w, h) c (BackgroundFlag bf) = withConsolePtr con $ \conp -> do
         w' = conv w
         h' = conv h
 
-foreign import ccall "console.h TCOD_console_hline"
+foreign import ccall "cconsole.h TCOD_console_hline"
   tcod_console_hline :: Ptr ConsoleStruct
                         -> CInt
                         -> CInt
@@ -652,7 +652,7 @@ hLine con (x, y) l (BackgroundFlag bf) = withConsolePtr con $ \conp ->
         y' = conv y
         l' = conv l
 
-foreign import ccall "console.h TCOD_console_vline"
+foreign import ccall "cconsole.h TCOD_console_vline"
   tcod_console_vline :: Ptr ConsoleStruct
                         -> CInt
                         -> CInt
@@ -670,7 +670,7 @@ vLine con (x, y) l (BackgroundFlag bf) = withConsolePtr con $ \conp ->
         y' = conv y
         l' = conv l
 
-foreign import ccall "console.h TCOD_console_print_frame"
+foreign import ccall "cconsole.h TCOD_console_print_frame"
   tcod_console_print_frame :: Ptr ConsoleStruct
                               -> CInt
                               -> CInt
@@ -694,7 +694,7 @@ printFrame con (x, y) (w, h) clear (BackgroundFlag bf) =
         w' = conv w
         h' = conv h
 
-foreign import ccall unsafe "console.h TCOD_console_get_width"
+foreign import ccall unsafe "cconsole.h TCOD_console_get_width"
   tcod_console_get_width :: Ptr ConsoleStruct
                             -> IO CInt
 
@@ -705,7 +705,7 @@ foreign import ccall unsafe "console.h TCOD_console_get_width"
 getWidth :: Console -> IO Int
 getWidth con = fromIntegral `fmap` (withConsolePtr con tcod_console_get_width)
 
-foreign import ccall unsafe "console.h TCOD_console_get_height"
+foreign import ccall unsafe "cconsole.h TCOD_console_get_height"
   tcod_console_get_height :: Ptr ConsoleStruct
                             -> IO CInt
 
@@ -714,7 +714,7 @@ foreign import ccall unsafe "console.h TCOD_console_get_height"
 getHeight :: Console -> IO Int
 getHeight con = fromIntegral `fmap` (withConsolePtr con tcod_console_get_height)
 
-foreign import ccall unsafe "console.h TCOD_console_get_default_background_ptr"
+foreign import ccall unsafe "cconsole.h TCOD_console_get_default_background_ptr"
   tcod_console_get_default_background :: Ptr ConsoleStruct
                                          -> Ptr Color
                                          -> IO ()
@@ -727,7 +727,7 @@ getDefaultBackground con = withConsolePtr con $ \conp ->
                              tcod_console_get_default_background conp colp
                              peek colp
 
-foreign import ccall unsafe "console.h TCOD_console_get_default_foreground_ptr"
+foreign import ccall unsafe "cconsole.h TCOD_console_get_default_foreground_ptr"
   tcod_console_get_default_foreground :: Ptr ConsoleStruct
                                          -> Ptr Color
                                          -> IO ()
@@ -740,7 +740,7 @@ getDefaultForeground con = withConsolePtr con $ \conp ->
                              tcod_console_get_default_foreground conp colp
                              peek colp
 
-foreign import ccall unsafe "console.h TCOD_console_get_char_background_ptr"
+foreign import ccall unsafe "cconsole.h TCOD_console_get_char_background_ptr"
   tcod_console_get_char_background :: Ptr ConsoleStruct
                                       -> CInt
                                       -> CInt
@@ -759,7 +759,7 @@ getCharBackground con (x, y) =
           x' = conv x
           y' = conv y
 
-foreign import ccall unsafe "console.h TCOD_console_get_char_foreground_ptr"
+foreign import ccall unsafe "cconsole.h TCOD_console_get_char_foreground_ptr"
   tcod_console_get_char_foreground :: Ptr ConsoleStruct
                                       -> CInt
                                       -> CInt
@@ -778,7 +778,7 @@ getCharForeground con (x, y) =
           x' = conv x
           y' = conv y
 
-foreign import ccall unsafe "console.h TCOD_console_get_char"
+foreign import ccall unsafe "cconsole.h TCOD_console_get_char"
   tcod_console_get_char :: Ptr ConsoleStruct
                            -> CInt
                            -> CInt
@@ -794,7 +794,7 @@ getChar_ con (x, y) = withConsolePtr con $ \conp ->
         x' = conv x
         y' = conv y
 
-foreign import ccall unsafe "console.h TCOD_console_set_fade_ptr"
+foreign import ccall unsafe "cconsole.h TCOD_console_set_fade_ptr"
   tcod_console_set_fade :: CUChar
                            -> Ptr Color
                            -> IO ()
@@ -806,7 +806,7 @@ setFade f c = alloca $ \cp -> do
   poke cp c
   tcod_console_set_fade (fromIntegral f) cp
 
-foreign import ccall unsafe "console.h TCOD_console_get_fade"
+foreign import ccall unsafe "cconsole.h TCOD_console_get_fade"
   tcod_console_get_fade :: IO CUChar
 
 -- | The fade amount. Wraps
@@ -814,7 +814,7 @@ foreign import ccall unsafe "console.h TCOD_console_get_fade"
 getFade :: IO Int
 getFade = tcod_console_get_fade >>= (return . fromIntegral)
 
-foreign import ccall unsafe "console.h TCOD_console_get_fading_color_ptr"
+foreign import ccall unsafe "cconsole.h TCOD_console_get_fading_color_ptr"
   tcod_console_get_fading_color :: Ptr Color
                                    -> IO ()
 
@@ -825,7 +825,7 @@ getFadingColor = alloca $ \p -> do
   tcod_console_get_fading_color p
   peek p
 
-foreign import ccall unsafe "console.h TCOD_console_flush"
+foreign import ccall unsafe "cconsole.h TCOD_console_flush"
   tcod_console_flush :: IO ()
 
 -- | Flushes the root console to the screen. Wraps
@@ -833,7 +833,7 @@ foreign import ccall unsafe "console.h TCOD_console_flush"
 flushConsole :: IO ()
 flushConsole = tcod_console_flush
 
-foreign import ccall unsafe "console.h TCOD_console_wait_for_keypress_ptr"
+foreign import ccall unsafe "cconsole.h TCOD_console_wait_for_keypress_ptr"
   tcod_console_wait_for_keypress :: Bool
                                     -> Ptr KeyEvent
                                     -> IO ()
@@ -849,7 +849,7 @@ waitForKeypress f =
   tcod_console_wait_for_keypress f kep >>
   peek kep
 
-foreign import ccall unsafe "console.h TCOD_console_check_for_keypress_ptr"
+foreign import ccall unsafe "cconsole.h TCOD_console_check_for_keypress_ptr"
   tcod_console_check_for_keypress :: CInt
                                      -> Ptr KeyEvent
                                      -> IO ()
@@ -868,7 +868,7 @@ checkForKeypress (KeyStatus s) =
              then Nothing
              else Just ke
 
-foreign import ccall unsafe "console.h TCOD_console_is_key_pressed"
+foreign import ccall unsafe "cconsole.h TCOD_console_is_key_pressed"
   tcod_console_is_key_pressed :: CInt
                                  -> IO Bool
 
@@ -876,7 +876,7 @@ foreign import ccall unsafe "console.h TCOD_console_is_key_pressed"
 isKeyPressed :: Keycode -> IO Bool
 isKeyPressed (Keycode kc) = tcod_console_is_key_pressed kc
 
-foreign import ccall unsafe "console.h TCOD_console_set_keyboard_repeat"
+foreign import ccall unsafe "cconsole.h TCOD_console_set_keyboard_repeat"
   tcod_console_set_keyboard_repeat :: CInt
                                       -> CInt
                                       -> IO ()
@@ -894,7 +894,7 @@ setKeyboardRepeat start repeat =
   tcod_console_set_keyboard_repeat (conv start) (conv repeat)
   where conv = CInt . fromIntegral
 
-foreign import ccall unsafe "console.h TCOD_console_new"
+foreign import ccall unsafe "cconsole.h TCOD_console_new"
   tcod_console_new :: CInt
                       -> CInt
                       -> IO (Ptr ConsoleStruct)
@@ -907,7 +907,7 @@ initOffscreen w h = createConsole $ tcod_console_new w' h'
         w' = conv w
         h' = conv h
 
-foreign import ccall unsafe "console.h TCOD_console_from_file"
+foreign import ccall unsafe "cconsole.h TCOD_console_from_file"
   tcod_console_from_file :: CString
                             -> IO (Ptr ConsoleStruct)
 
@@ -918,7 +918,7 @@ initOffscreenFromFile fname =
   newCAString fname >>=
   createConsole . tcod_console_from_file
 
-foreign import ccall unsafe "console.h TCOD_console_load_asc"
+foreign import ccall unsafe "cconsole.h TCOD_console_load_asc"
   tcod_console_load_asc :: Ptr ConsoleStruct
                            -> CString
                            -> IO Bool
@@ -934,7 +934,7 @@ loadASC con fname =
   else (newCAString fname >>=
         tcod_console_load_asc conp)
 
-foreign import ccall unsafe "console.h TCOD_console_load_apf"
+foreign import ccall unsafe "cconsole.h TCOD_console_load_apf"
   tcod_console_load_apf :: Ptr ConsoleStruct
                            -> CString
                            -> IO Bool
@@ -950,7 +950,7 @@ loadAPF con fname =
   else (newCAString fname >>=
         tcod_console_load_apf conp)
 
-foreign import ccall unsafe "console.h TCOD_console_save_asc"
+foreign import ccall unsafe "cconsole.h TCOD_console_save_asc"
   tcod_console_save_asc :: Ptr ConsoleStruct
                            -> CString
                            -> IO Bool
@@ -964,7 +964,7 @@ saveASC con fname =
   newCAString fname >>=
   tcod_console_save_asc conp
 
-foreign import ccall unsafe "console.h TCOD_console_save_apf"
+foreign import ccall unsafe "cconsole.h TCOD_console_save_apf"
   tcod_console_save_apf :: Ptr ConsoleStruct
                            -> CString
                            -> IO Bool
@@ -978,7 +978,7 @@ saveAPF con fname =
   newCAString fname >>=
   tcod_console_save_apf conp
 
-foreign import ccall unsafe "console.h TCOD_console_blit"
+foreign import ccall unsafe "cconsole.h TCOD_console_blit"
   tcod_console_blit :: Ptr ConsoleStruct -> CInt -> CInt -> CInt -> CInt
                        -> Ptr ConsoleStruct -> CInt -> CInt
                        -> CFloat -> CFloat
@@ -1006,7 +1006,7 @@ blit src (sx, sy) (sw, sh) dst (dx, dy) fga bga =
         fga' = f fga
         bga' = f bga
 
-foreign import ccall unsafe "console.h TCOD_console_set_key_color_ptr"
+foreign import ccall unsafe "cconsole.h TCOD_console_set_key_color_ptr"
   tcod_console_set_key_color :: Ptr ConsoleStruct
                                 -> Ptr Color
                                 -> IO ()
