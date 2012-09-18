@@ -130,7 +130,7 @@ getAlpha (Image fp) (x, y) =
 isTransparent :: Image -> (Int, Int) -> IO Bool
 isTransparent img coord = fmap (== 0) $ (getAlpha img coord)
 
-foreign import ccall unsafe "cimage.h TCOD_image_get_mipmap_pixel_ptr"
+foreign import ccall unsafe "cimage.h TCOD_image_get_mipmap_ptr"
   image_get_mipmap :: Ptr ImageStruct ->
                       CFloat -> CFloat ->
                       CFloat -> CFloat ->
