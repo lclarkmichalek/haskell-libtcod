@@ -23,11 +23,13 @@ library
     UI.TCOD.Line
     UI.TCOD.Image
     UI.TCOD.Console.Types
+    UI.TCOD.Mouse
   C-sources:
     UI/TCOD/ccolor.c
     UI/TCOD/cconsole.c
     UI/TCOD/csys.c
     UI/TCOD/cimage.c
+    UI/TCOD/cmouse.c
   Include-dirs:
     UI/TCOD
   extra-libraries:     tcod
