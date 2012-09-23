@@ -9,6 +9,7 @@ module UI.TCOD.Mouse
 
 import Foreign.C.Types
 import Foreign.C.String
+import Foreign.Storable
 
 #include "cmouse.h"
 
