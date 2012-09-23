@@ -9,7 +9,9 @@ module UI.TCOD.Mouse
 
 import Foreign.C.Types
 import Foreign.C.String
+import Foreign.Marshal.Alloc
 import Foreign.Storable
+import Foreign.Ptr
 
 #include "cmouse.h"
 
@@ -54,7 +56,7 @@ instance Storable MouseStatus where
     wup <- #{peek TCOD_mouse_t, wheel_up} ptr
     wdn <- #{peek TCOD_mouse_t, wheel_down} ptr
     return $ MouseStatus (x, y) (dx, dy) (cx, cy) (dcx, dcy) l r m lp rp mp wup wdn
-  poke ptr (MouseSatus (x, y) (dx, dy) (cx, cy) (dcx, dcy) l r m lp rp mp wup wdn) =
+  poke ptr (MouseStatus (x, y) (dx, dy) (cx, cy) (dcx, dcy) l r m lp rp mp wup wdn) =
     do #{poke TCOD_mouse_t, x} ptr x
        #{poke TCOD_mouse_t, y} ptr y
        #{poke TCOD_mouse_t, dx} ptr dx
@@ -76,7 +78,7 @@ boolToNum :: Num a => Bool -> a
 boolToNum True = 1
 boolToNum False = 0
 
-numToBool :: Num a => a -> Bool
+numToBool :: (Num a, Eq a) => a -> Bool
 numToBool 0 = False
 numToBool _ = True
 
@@ -92,14 +94,14 @@ foreign import ccall unsafe "cmouse.h TCOD_mouse_is_cursor_visible"
 
 -- | Returns the status of the cursor.
 isCursorVisible :: IO Bool
-isCursorVisible = numToBool . is_cursor_visible
+isCursorVisible = numToBool `fmap` is_cursor_visible
 
 foreign import ccall unsafe "cmouse.h TCOD_mouse_move"
   mouse_move :: CInt -> CInt -> IO ()
 
 moveMouse :: (Int, Int) -> IO ()
 moveMouse (x, y) =
-  move_mouse (fromIntegral x) (fromIntegral y)
+  mouse_move (fromIntegral x) (fromIntegral y)
 
 foreign import ccall unsafe "cmouse.h TCOD_mouse_get_status_ptr"
   mouse_status :: Ptr MouseStatus -> IO ()
@@ -107,5 +109,5 @@ foreign import ccall unsafe "cmouse.h TCOD_mouse_get_status_ptr"
 -- | Gets the current mouse status
 mouseStatus :: IO MouseStatus
 mouseStatus = alloca $ \msp ->
-  mouse_status msp
+  mouse_status msp >>
   peek msp
